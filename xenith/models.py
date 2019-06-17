@@ -14,7 +14,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from xenith import torchmods
-
+from xenith import dataset
 
 class XenithModel():
     """
@@ -36,23 +36,85 @@ class XenithModel():
     features : list of str
         The feature names used to train the model, in order.
     """
-    def __init__(self, model, source, datasets=None, pretrained=False):
+    def __init__(self, model, source, num_features, pretrained=False,
+                 feat_mean=None, feat_stdev=None, hidden_dims=None):
         """Instantiate an empty container"""
         self.model = model
         self.source = source
-        self.datasets = datasets
+        self.num_features = num_features
         self.pretrained = pretrained
+        self.feat_mean = feat_mean
+        self.feat_stdev = feat_stdev
+        self.hidden_dims = hidden_dims
 
     def save(self, file_name: str) -> None:
         """
-        Save a XenithModel object
-        """
-        pass
+        Save a XenithModel object to a file.
 
-    def fit(self, psm_files: Tuple[str],  max_epochs: int = 100,
-            batch_size: int = 1028, learn_rate: float = 0.001,
-            weight_decay: float = 0.01, val_fraction: float = 0.3,
-            early_stop: int = 5, gpu: bool = False, seed: int = 1) -> None:
+        Parameters
+        ----------
+        file_name : str
+            The path to save the xenith model for future use.
+        """
+        model_spec = {"model_class": type(self.model).__name__,
+                      "source": self.source,
+                      "pretrained": self.pretrained,
+                      "feat_mean": self.feat_mean,
+                      "feat_stdev": self.feat_stdev,
+                      "model_weights": self.model.state_dict(),
+                      "num_features": self.num_features,
+                      "hidden_dims": self.hidden_dims}
+
+        torch.save(model_spec, file_name)
+
+    def predict(self, psm_files: Tuple[str], gpu: bool = False) \
+        -> "pandas.DataFrame":
+        """
+        Use a trained XenithModel to evaluate a new dataset.
+
+        Parameters
+        ----------
+        psm_files : tuple of str or str
+            The file path(s) to a collection of PSMs to evaluate with
+            the model. These should not have been used for model
+            training!
+
+        gpu : bool
+            Should the gpu be used, if available?
+
+        Returns
+        -------
+        pandas.DataFrame
+             A dataframe with the new score and metadata.
+        """
+        if self.pretrained == False:
+            logging.warning("This model appears to be untrained!")
+
+        if source == "percolator":
+            normalize = True
+        else:
+            normalize = False
+
+        device = _set_device(gpu)
+        self.model.eval()
+        psms = dataset.PsmDataset(psm_files, device,
+                                  feat_mean=self.feat_mean,
+                                  feat_stdev=self.feat_stdev,
+                                  normalize=normalize)
+
+        pred = self.model(psms.features)
+        pred = pred.detach().cpu().numpy()
+
+        psms.add_metric("xenith_score", pred)
+
+        return(psms)
+
+
+    def fit(self, training_files: Tuple[str],  validation_files: Tuple[str],
+            max_epochs: int = 100, batch_size: int = 1028,
+            learn_rate: float = 0.001, weight_decay: float = 0.01,
+            early_stop: int = 5, gpu: bool = False, seed: int = 1) \
+            -> "pandas.DataFrame":
         """
         Fit a XenithModel on a collection of cross-linked PSMs.
 
@@ -61,8 +123,11 @@ class XenithModel():
 
         Parameters
         ----------
-        psm_files : tuple of str
+        training_files : tuple of str
             A training set of PSMs in the xenith tab-delimited format.
+
+        validation_files : tuple of str
+            A validation set of PSMs in xenith tab-delimited format.
 
         max_epochs : int
             The maximum number of iterations through the full dataset to
@@ -78,40 +143,41 @@ class XenithModel():
         weight_decay : float
             Adds L2 regularization to all model parameters.
 
-        val_fraction : float
-            The proportion of the dataset to be held out for validation.
-            This validation set is how early stopping criteria are
-            assessed.
-
         early_stop : int
             Stop training if the validation set loss does not decrease
             for `early_stop` consecutive epochs. Set to `None` to
             disable early stopping.
 
         gpu : bool
-            Should the gpu be used?
+            Should the gpu be used, if available?
 
         seed : int
             The seed for random number generation.
+
+        Returns
+        -------
+        pandas.DataFrame
+            A dataframe containing the training and validation losses
+            at each epoch.
         """
         torch.manual_seed(seed)
         np.random.seed(seed)
         device = _set_device(gpu)
 
-        train_set = torch.zeros(1)
-        val_set = torch.zeros(1)
+        train_set = dataset.PsmDataset(training_files, device)
+        self.feat_mean = train_set.feat_mean
+        self.feat_stdev = train_set.feat_stdev
+
+        val_set = dataset.PsmDataset(validation_files, device,
+                                     feat_mean=train_set.feat_mean,
+                                     feat_stdev=train_set.feat_stdev)
+
         sig_loss = torchmods.SigmoidLoss()
-
-        # Steps:
-        # 1. Load and combine PSM data. All must have the same features.
-        # 2. Execute training loop
-        # 3. Set attributes for test set.
-
-        # Send things to the gpu...
-        val_set = val_set.to(device)
         self.model = self.model.to(device)
 
         # Setup
+        loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size,
+                                             shuffle=True, drop_last=True)
         optimizer = torch.optim.Adam(self.model.parameters(), lr=learn_rate,
                                      weight_decay=weight_decay)
 
@@ -129,7 +195,7 @@ class XenithModel():
 
             with torch.no_grad():
                 self.model.eval()
-                val_pred = self.model(val_set.feat)
+                val_pred = self.model(val_set.features)
                 val_loss = sig_loss(val_pred.flatten(), val_set.target)
                 val_loss = val_loss.item()
                 val_loss_tracker.append(val_loss)
@@ -146,11 +212,10 @@ class XenithModel():
             _train_message(epoch, loss, val_loss)
 
             if np.isnan(loss):
-                logging.warning("Nan detected in loss.")
-                break
+                raise RuntimeError("NaN detected in loss.")
 
             if stop_counter == early_stop:
-                logging.info("Stopping early...")
+                logging.info("Stopping at epoch %s...", epoch)
 
         res_msg = (f"Best Epoch = {best_epoch}, "
                    f"Validation Loss = {best_loss:.5f}")
@@ -158,6 +223,8 @@ class XenithModel():
 
         # Wrap-up
         self.model = best_model.cpu()
+        self.pretrained = True
+        self.source = "xenith"
         loss_df = pd.DataFrame({"epoch": list(range(epoch+1)),
                                 "train_loss": train_loss_tracker,
                                 "val_loss": val_loss_tracker})
@@ -197,10 +264,11 @@ def from_percolator(weights_file: str) -> "XenithModel":
     model.linear.weight.data = weights
     model.linear.bias.data = bias
 
-    return XenithModel(model=model, source="percolator", pretrained=True)
+    return XenithModel(model=model, num_features=len(weights),
+                       source="percolator", pretrained=True)
 
 
-def from_xenith(xenith_model_file: str) -> "XenithModel":
+def load_model(xenith_model_file: str) -> "XenithModel":
     """
     Load a pretrained model from xenith.
 
@@ -212,14 +280,27 @@ def from_xenith(xenith_model_file: str) -> "XenithModel":
     Returns
     -------
     xenith.XenithModel
-        A XenithModel object for predicting on a new dataset using the
-        model that was trained in xenith.
+        A XenithModel object for predicting on a new dataset.
     """
     xenith_model_file = os.path.abspath(os.path.expanduser(xenith_model_file))
     if not os.path.isfile(xenith_model_file):
         raise FileNotFoundError("'xenith_model_file' not found.")
 
-    # TODO: Load files.
+    model_spec = torch.load(xenith_model_file)
+
+    if model_spec["model_class"] == "MLP":
+        model = torchmods.MLP(input_dim=model_spec["num_features"],
+                              layers=model_spec["hidden_dims"])
+    else:
+        model = torchmods.Linear(input_dim=model_spec["num_features"])
+
+    model.load_stat_dict(model_spec["state_dict"])
+
+    return XenithModel(model=model, num_features=model_spec["num_features"],
+                       hidden_dims=model_spec["hidden_dims"],
+                       source=model_spec["source"],
+                       pretrained=model_spec["pretrained"])
+
 
 def new_model(num_features: int, hidden_dims: Tuple[int] = (8, 8, 8)):
     """
@@ -239,7 +320,9 @@ def new_model(num_features: int, hidden_dims: Tuple[int] = (8, 8, 8)):
     else:
         model = torchmods.MLP(input_dim=num_features, layers=hidden_dims)
 
-    return XenithModel(model=model, source="xenith", pretrained=False)
+    return XenithModel(model=model, num_features=num_features,
+                       hidden_dims=hidden_dims, source="xenith",
+                       pretrained=False)
 
 
 # Utility functions -----------------------------------------------------------
@@ -275,5 +358,3 @@ def _train_batch(loader, model, optimizer, loss_fun):
         total = batch_idx
 
     return running_loss / (total + 1)
-
-

@@ -51,7 +51,7 @@ class PsmDataset(torch.utils.data.Dataset):
         peptides are a decoy sequence. `1` indicates target, `0`
         indicates decoy.
 
-    prediction : torch.FloatTensor
+    metrics : pandas.DataFrame
         The model predictions. If no predictions have been made,
         this is `None`.
 
@@ -82,6 +82,8 @@ class PsmDataset(torch.utils.data.Dataset):
 
         self.features = torch.FloatTensor(norm_feat[0]).to(device)
         self.target = torch.ByteTensor(self.metadata.numtarget == 2).to(device)
+        self.metrics = pd.DataFrame()
+        self._feat_df = feat_df
 
     def __len__(self):
         """Get the total number of sample"""
@@ -90,6 +92,44 @@ class PsmDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         """Generate one sample of data"""
         return [self.target[idx], self.features[idx, :]]
+
+    def add_metric(self, name, value=None):
+        """
+        Add a scoring metric
+
+        Parameters
+        ----------
+        name : str
+            Name of the new metric.
+
+        value : array-like or None
+            The metric values, such as the predictions from a
+            XenithModel. If `None`, a feature that matches
+            the `name` argument will be used.
+        """
+        if value is None:
+            value = self._feat_df[name]
+
+        self.metrics[name] = value
+
+    def estimate_qvalues(self, level: str) -> "pandas.DataFrame":
+        """
+        Estimate q-values at the PSM, cross-link, and peptide levels.
+
+        Parameters
+        ----------
+        level : str
+            The level at which to estimate q-values. Can be one of
+            'psm', 'cross-link', or 'peptide'.
+
+        Returns
+        -------
+        pandas.DataFrame
+            A DataFrame with the q-values at the requested level.
+        """
+        res_df = pd.concat(self.metadata, self.metrics)
+
+        return res_df
 
 
 # Functions -------------------------------------------------------------------
