@@ -2,6 +2,7 @@
 Defines the PsmDataset set class and the auxiliary functions needed to
 easily construct one.
 """
+import numpy as np
 import pandas as pd
 import torch
 import torch.utils.data
@@ -29,6 +30,10 @@ class PsmDataset(torch.utils.data.Dataset):
         case of a model from Percolator, this should be `False`, because
         the raw weights will be used.
 
+    addtional_metadata : tuple of str
+        Additional columns to be considered metadata. This can be useful
+        for removing specific features.
+
     device : torch.device
         The device on which to put the tensors
 
@@ -45,7 +50,7 @@ class PsmDataset(torch.utils.data.Dataset):
         A 2D tensor containing the features needed for
         training and prediction.
 
-    target : torch.ByteTensor
+    target : torch.FloatTensor
         A 1D tensor indicating whether a PSM is a decoy or not. Decoys
         are defined as PSMs where one or more of the cross-linked
         peptides are a decoy sequence. `1` indicates target, `0`
@@ -61,18 +66,20 @@ class PsmDataset(torch.utils.data.Dataset):
         used for the normalization of each feature.
     """
     def __init__(self, psm_files, device, feat_mean=None, feat_stdev=None,
-                 normalize=True):
+                 normalize=True, additional_metadata=None):
         """Initialize a PsmDataset"""
-        meta_cols = ["psmid", "numtarget", "scannr", "expmass", "calcmass",
-                     "peptidea", "peptideb", "linksitea", "linksiteb",
-                     "proteina", "proteinb"] + ["fileidx"]
+        meta_cols = ["specid", "numtarget", "scannr", "peptidea", "peptideb",
+                     "linksitea", "linksiteb", "proteina", "proteinb",
+                     "fileidx"]
+
+        if additional_metadata is not None:
+            meta_cols = meta_cols + additional_metadata
 
         psms = _parse_psms(psm_files, meta_cols)
         self.metadata = psms.loc[:, meta_cols]
 
         # Process features
         feat_df = psms.drop(columns=meta_cols)
-
         norm_feat = _process_features(feat_df, feat_mean, feat_stdev,
                                       normalize)
 
@@ -80,8 +87,8 @@ class PsmDataset(torch.utils.data.Dataset):
         self.feat_mean = norm_feat[1]
         self.feat_stdev = norm_feat[2]
 
-        self.features = torch.FloatTensor(norm_feat[0]).to(device)
-        self.target = torch.ByteTensor(self.metadata.numtarget == 2).to(device)
+        self.features = torch.FloatTensor(norm_feat[0].values).to(device)
+        self.target = torch.FloatTensor(self.metadata.numtarget == 2).to(device)
         self.metrics = pd.DataFrame()
         self._feat_df = feat_df
 
@@ -146,9 +153,9 @@ def _process_features(feat_df, feat_mean, feat_stdev, normalize):
         A dataframe containing only the features for training and
         prediction.
 
-    feat_mean : pd.DataFrame
-    feat_stdev : pd.DataFrame
-        Wide dataframes containing the mean and standard deviation of
+    feat_mean : pd.Series
+    feat_stdev : pd.Series
+        Series containing the mean and standard deviation of
         each feature to use for normalization. If `None`, these are
         calculated on the parsed data. For prediction, these should
         be the respective values from the training set.
@@ -168,8 +175,8 @@ def _process_features(feat_df, feat_mean, feat_stdev, normalize):
         feat_stdev = feat_df.std(ddof=0, numeric_only=True)
 
     feat_set = set(feat_df.columns)
-    feat_mean_set = set(feat_mean.columns)
-    feat_stdev_set = set(feat_stdev.columns)
+    feat_mean_set = set(feat_mean.index)
+    feat_stdev_set = set(feat_stdev.index)
 
     if feat_mean_set != feat_stdev_set:
         # This one should never happen with the public API.
@@ -177,14 +184,15 @@ def _process_features(feat_df, feat_mean, feat_stdev, normalize):
                            "do not match.")
 
     if feat_set != feat_mean_set:
-        raise RuntimeError("Model features do not match the dataset")
+        raise RuntimeError("Model features do not match the dataset.")
 
     # Align features
-    feat_mean = feat_mean.loc[:, feat_df.columns]
-    feat_stdev = feat_stdev.loc[:, feat_stdev.columns]
+    feat_mean = feat_mean.loc[feat_df.columns]
+    feat_stdev = feat_stdev.loc[feat_df.columns]
 
+    eps = np.finfo(np.float).eps
     if normalize:
-        feat_df = (feat_df - feat_mean.values) / feat_stdev.values
+        feat_df = (feat_df - feat_mean.values) / (feat_stdev.values + eps)
 
     return (feat_df, feat_mean, feat_stdev)
 
@@ -206,17 +214,20 @@ def _parse_psms(psm_files, meta_cols):
     pandas.DataFrame
         A dataframe containing a list of psms
     """
+    if isinstance(psm_files, str):
+        psm_files = (psm_files,)
+
     psm_list = []
     for idx, psm_file in enumerate(psm_files):
         psms = pd.read_csv(psm_file, sep="\t")
-        psms.columns = psms.columns.str.tolower()
+        psms.columns = psms.columns.str.lower()
         psms["fileidx"] = idx
 
         if not idx:
             feat_set = set(psms.columns)
 
         if not set(meta_cols) <= set(psms.columns):
-            raise RuntimeError(f"{psm_file} does not contain the expected"
+            raise RuntimeError(f"{psm_file} does not contain the expected "
                                "columns for xenith. See ? for details.")
 
         if not feat_set == set(psms.columns):

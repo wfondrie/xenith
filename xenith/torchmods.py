@@ -25,14 +25,13 @@ class MLP(nn.Module):
     def __init__(self, input_dim, layers):
         """Instantiate an MLP object"""
         super(MLP, self).__init__()
-
-        self.trained = False
+        layers = list(layers)
 
         in_layers = [input_dim] + layers
         out_layers = layers + [1]
-        for idx in range(in_layers):
+        for idx, in_layer in enumerate(in_layers):
             self.add_module("Linear_{}".format(idx),
-                            nn.Linear(in_layers[idx], out_layers[idx]))
+                            nn.Linear(in_layer, out_layers[idx]))
 
     def forward(self, x):
         """Define the forward pass"""
@@ -55,7 +54,7 @@ class Linear(nn.Module):
     def __init__(self, input_dim):
         """Instantiate a linear model"""
         super(Linear, self).__init__()
-        self.linear = nn.Linear(input_dim)
+        self.linear = nn.Linear(input_dim, 1)
 
     def forward(self, x):
         """The forward pass"""

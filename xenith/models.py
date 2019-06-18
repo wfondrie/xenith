@@ -3,15 +3,12 @@ Define models that Xenith can use.
 """
 import os
 import copy
-import pickle
 import logging
 from typing import Tuple
 
 import numpy as np
 import pandas as pd
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 
 from xenith import torchmods
 from xenith import dataset
@@ -61,7 +58,7 @@ class XenithModel():
                       "pretrained": self.pretrained,
                       "feat_mean": self.feat_mean,
                       "feat_stdev": self.feat_stdev,
-                      "model_weights": self.model.state_dict(),
+                      "state_dict": self.model.state_dict(),
                       "num_features": self.num_features,
                       "hidden_dims": self.hidden_dims}
 
@@ -84,27 +81,27 @@ class XenithModel():
 
         Returns
         -------
-        pandas.DataFrame
-             A dataframe with the new score and metadata.
+        xenith.PsmDataset
+             A PsmDataset object with the .
         """
         if self.pretrained == False:
             logging.warning("This model appears to be untrained!")
 
-        if source == "percolator":
-            normalize = True
-        else:
+        if self.source == "percolator":
             normalize = False
+        else:
+            normalize = True
 
         device = _set_device(gpu)
         self.model.eval()
+
         psms = dataset.PsmDataset(psm_files, device,
                                   feat_mean=self.feat_mean,
                                   feat_stdev=self.feat_stdev,
                                   normalize=normalize)
 
         pred = self.model(psms.features)
-        pred = pred.detach().cpu().numpy()
-
+        pred = pred.detach().cpu().numpy().flatten()
         psms.add_metric("xenith_score", pred)
 
         return(psms)
@@ -191,10 +188,14 @@ class XenithModel():
         # The main training loop
         for epoch in range(max_epochs):
             loss = _train_batch(loader, self.model, optimizer, sig_loss)
-            train_loss_tracker.append(loss)
 
             with torch.no_grad():
                 self.model.eval()
+                train_pred = self.model(train_set.features)
+                train_loss = sig_loss(train_pred.flatten(), train_set.target)
+                train_loss = train_loss.item()
+                train_loss_tracker.append(train_loss)
+
                 val_pred = self.model(val_set.features)
                 val_loss = sig_loss(val_pred.flatten(), val_set.target)
                 val_loss = val_loss.item()
@@ -209,13 +210,14 @@ class XenithModel():
             else:
                 stop_counter += 1
 
-            _train_message(epoch, loss, val_loss)
+            _train_message(epoch, train_loss, val_loss)
 
             if np.isnan(loss):
                 raise RuntimeError("NaN detected in loss.")
 
             if stop_counter == early_stop:
                 logging.info("Stopping at epoch %s...", epoch)
+                break
 
         res_msg = (f"Best Epoch = {best_epoch}, "
                    f"Validation Loss = {best_loss:.5f}")
@@ -252,13 +254,14 @@ def from_percolator(weights_file: str) -> "XenithModel":
     """
     weights_file = os.path.abspath(os.path.expanduser(weights_file))
     if not os.path.isfile(weights_file):
-        raise FileNotFoundError("'weights_file' not found.")
+        raise FileNotFoundError(f"{weights_file} not found.")
 
-    weight_df = pd.read_csv(weights_file, sep="\t", nrows=3)
-    weights = torch.FloatTensor(weight_df[1].values)
+    weight_df = pd.read_csv(weights_file, sep="\t", nrows=2)
+    weights = torch.FloatTensor(weight_df.loc[1, :].values)
+    weights = weights[None, :] # Add a second dim
 
-    bias = weights[-1]
-    weights = weights[:-1]
+    bias = weights[:, -1]
+    weights = weights[:, :-1]
 
     model = torchmods.Linear(input_dim=len(weights))
     model.linear.weight.data = weights
@@ -284,7 +287,7 @@ def load_model(xenith_model_file: str) -> "XenithModel":
     """
     xenith_model_file = os.path.abspath(os.path.expanduser(xenith_model_file))
     if not os.path.isfile(xenith_model_file):
-        raise FileNotFoundError("'xenith_model_file' not found.")
+        raise FileNotFoundError(f"{xenith_model_file} not found.")
 
     model_spec = torch.load(xenith_model_file)
 
@@ -294,7 +297,7 @@ def load_model(xenith_model_file: str) -> "XenithModel":
     else:
         model = torchmods.Linear(input_dim=model_spec["num_features"])
 
-    model.load_stat_dict(model_spec["state_dict"])
+    model.load_state_dict(model_spec["state_dict"])
 
     return XenithModel(model=model, num_features=model_spec["num_features"],
                        hidden_dims=model_spec["hidden_dims"],
