@@ -4,7 +4,7 @@ Enhanced cross-linked peptide detection using pretrained models.
 **xenith** is a python package that uses pretrained models to re-score search
 results from database search engines for cross-linked peptides. It also provides
 the ability to train custom models or import the learned weights from 
-[Percolator](percolator.ms**.
+[Percolator](percolator.ms).
 
 ## Installation
 **xenith** is not yet available through PyPI or conda, but it can be installed
@@ -18,9 +18,8 @@ directly from GitHub and is compatible with Python 3.6+.
 + PyTorch  
 
 Missing dependencies, with the exception of PyTorch, will be automatically
-installed when you install **xenith** with `pip` or `conda**.  
-
-The PyTorch installation depends on your specific GPU version, if you have one.
+installed when you install **xenith** with `pip` or `conda`. The PyTorch 
+installation depends on your specific GPU version, if you have one.
 Please refer to the PyTorch installation instructions for more information.
 
 ### Installing xenith with pip
