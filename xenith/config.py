@@ -43,7 +43,7 @@ class Config():
         common.add_argument("--verbosity",
                             default=2,
                             type=int,
-                            choices=[0, 1, 2],
+                            choices=[0, 1, 2, 3],
                             help=("Specify the verbosity of the current "
                                   "process. Each level prints the following "
                                   "messages, including all those at a lower "
@@ -57,15 +57,15 @@ class Config():
         eval_help = ("Use a previously trained model to assess a new "
                      "collection of peptide-spectrum matches (PSMs).")
 
-        eval_parser = subparser.add_parser("assess",
+        eval_parser = subparser.add_parser("predict",
                                            parents=[common],
                                            description=eval_help,
                                            epilog=docs,
                                            help=eval_help)
 
-        eval_parser.add_argument("psm_file",
+        eval_parser.add_argument("psm_files",
                                  type=str,
-                                 nargs=1,
+                                 nargs="+",
                                  help=("A collection of cross-linked PSMs in"
                                        "the xenith tab-separated format."))
 
@@ -78,77 +78,124 @@ class Config():
 
         eval_parser.add_argument("--fileroot",
                                  type=str,
+                                 default="xenith",
                                  help=("The fileroot string will be added as a"
                                        " prefix to all output file names. This"
-                                       " is the 'psm_file' root by default."))
+                                       " is the 'xenith' by default."))
 
+        mod_help = """Which model should be used? Choices include several
+        included pretrained models for output from Kojak, or custom models
+        created in xenith or from Percolator. Specifically, the choices are:
+        (1) 'kojak_mlp' - A multilayer perceptron model for output from
+        Kojak 2.0.
+        (2) 'kojak_linear' - A linear model for output from Kojak 2.0.
+        (3) 'kojak_percolator' - A model created from Percolator results for
+        output from Kojak 2.0.
+        (4) 'custom' - A custom xenith model, created using 'xenith train'
+        (5) 'custom_percolator' - A custom model created from the weights
+        learned by Percolator. For the latter two, the '--model-file' option
+        is required.
+        """
         eval_parser.add_argument("--model",
                                  type=str,
-                                 required=True,
-                                 help=("Which model should be used? The built"
-                                       "-in models are 'kojak_mlp' and "
-                                       "'kojak_percolator' which are both for "
-                                       "output from Kojak. Custom models can "
-                                       "be created using the 'train' "
-                                       "command or using a Percolator "
-                                       "weights file. If a custom model is "
-                                       "used this should be the path to the "
-                                       "model file."))
+                                 choices=["kojak_mlp", "kojak_linear",
+                                          "kojak_percolator", "custom",
+                                          "custom_percolator"],
+                                 default="kojak_mlp",
+                                 help=mod_help)
+
+        eval_parser.add_argument("--model-file",
+                                 type=str,
+                                 help=("The path to a custom model. If "
+                                       "'--model' is 'custom', this should "
+                                       "be a xenith model file. If '--model' "
+                                       "is 'custom_percolator' this should be "
+                                       "the weights file output by "
+                                       "Percolator"))
+
 
         # Train
-        train_help = ("Train a new model to assess future collections of "
-                      "cross-linked peptide-spectrum matches (PSMs).")
-        train_parser = subparser.add_parser("train",
-                                            parents=[common],
-                                            description=train_help,
-                                            epilog=docs,
-                                            help=train_help)
+        fit_help = ("Train a new model to assess future collections of "
+                    "cross-linked peptide-spectrum matches (PSMs).")
+        fit_parser = subparser.add_parser("fit",
+                                          parents=[common],
+                                          description=fit_help,
+                                          epilog=docs,
+                                          help=fit_help)
 
-        train_parser.add_argument("psm_files",
-                                  type=str,
-                                  nargs="+",
-                                  help=("One or more collections of PSMs in "
-                                        "the xenith tab-separated format"))
+        fit_parser.add_argument("psm_files",
+                                type=str,
+                                nargs="+",
+                                help=("One or more collections of PSMs in "
+                                      "the xenith tab-separated format"))
 
-        train_parser.add_argument("--hidden_dims",
-                                  type=str,
-                                  nargs=1,
-                                  help=("A comma-separated list indicating "
-                                        "dimensions of hidden layers to use "
-                                        "in the model. This is '8,8,8' by "
-                                        "default, which defines three hidden "
-                                        "layers with 8 neurons each"))
+        fit_parser.add_argument("--fileroot",
+                                type=str,
+                                default="xenith_model",
+                                nargs=1,
+                                help=("The fileroot string will be added as "
+                                      "a prefix to all output file names. "
+                                      "This is 'xenith_model' by default."))
 
-        train_parser.add_argument("--max_epochs",
-                                  type=int,
-                                  default=200,
-                                  nargs=1,
-                                  help=("The maximum number of epochs "
-                                        "used for model training."))
+        fit_parser.add_argument("--hidden_dims",
+                                type=str,
+                                default="8,8,8",
+                                nargs=1,
+                                help=("A comma-separated list indicating "
+                                      "dimensions of hidden layers to use "
+                                      "in the model. This is '8,8,8' by "
+                                      "default, which defines three hidden "
+                                      "layers with 8 neurons each. If '', a "
+                                      "linear model is used."))
 
-        train_parser.add_argument("--learning_rate",
-                                  type=float,
-                                  default=0.0001,
-                                  nargs=1,
-                                  help=("The learning rate to be used for "
+        fit_parser.add_argument("--max_epochs",
+                                type=int,
+                                default=100,
+                                nargs=1,
+                                help=("The maximum number of epochs "
+                                      "used for model training."))
+
+        fit_parser.add_argument("--learning_rate",
+                                type=float,
+                                default=0.001,
+                                nargs=1,
+                                help=("The learning rate to be used for "
                                         "optimization with Adam. The default "
-                                        "is 0.0001"))
+                                        "is 0.001"))
 
-        train_parser.add_argument("--batch_size",
-                                  type=int,
-                                  default=128,
-                                  nargs=1,
-                                  help=("The batch size to use for "
-                                        "optimization with Adam. The default "
-                                        "is 128."))
+        fit_parser.add_argument("--batch_size",
+                                type=int,
+                                default=1028,
+                                nargs=1,
+                                help=("The batch size to use for "
+                                      "optimization with Adam. The default "
+                                      "is 1028."))
 
-        train_parser.add_argument("--fileroot",
-                                  type=str,
-                                  default="xenith_model",
-                                  nargs=1,
-                                  help=("The fileroot string will be added as "
-                                        "a prefix to all output file names. "
-                                        "This is 'xenith_model' by default."))
+        fit_parser.add_argument("--weight_decay",
+                                type=float,
+                                default=0.01,
+                                nargs=1,
+                                help=("Adds L2 regularization to all model "
+                                      "parameters"))
+
+        fit_parser.add_argument("--early_stop",
+                                type=int,
+                                default=5,
+                                help=("Stop training if the validation set "
+                                      "loss does not decreases for n "
+                                      "consecutive epochs. 0 disables early "
+                                      "stopping."))
+
+        fit_parser.add_argument("--gpu",
+                                type=bool,
+                                default=False,
+                                help="Should a GPU be used, if available?")
+
+        fit_parser.add_argument("--seed",
+                                type=int,
+                                default=1,
+                                help="Set the seed for reproducibility.")
+
 
         self._namespace = vars(parser.parse_args())
 

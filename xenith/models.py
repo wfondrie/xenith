@@ -104,19 +104,18 @@ class XenithModel():
         pred = pred.detach().cpu().numpy().flatten()
         psms.add_metric("xenith_score", pred)
 
-        return(psms)
-
+        return psms
 
     def fit(self, training_files: Tuple[str],  validation_files: Tuple[str],
             max_epochs: int = 100, batch_size: int = 1028,
             learn_rate: float = 0.001, weight_decay: float = 0.01,
-            early_stop: int = 5, gpu: bool = False, seed: int = 1) \
-            -> "pandas.DataFrame":
+            early_stop: int = 5, gpu: bool = False) \
+            -> "xenith.dataset.PsmDataset":
         """
         Fit a XenithModel on a collection of cross-linked PSMs.
 
         The model is trained using the Adam algorithm to perform
-        mini-batch gradient descent. 
+        mini-batch gradient descent.
 
         Parameters
         ----------
@@ -148,17 +147,12 @@ class XenithModel():
         gpu : bool
             Should the gpu be used, if available?
 
-        seed : int
-            The seed for random number generation.
-
         Returns
         -------
         pandas.DataFrame
             A dataframe containing the training and validation losses
             at each epoch.
         """
-        torch.manual_seed(seed)
-        np.random.seed(seed)
         device = _set_device(gpu)
 
         train_set = dataset.PsmDataset(training_files, device)
