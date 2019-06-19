@@ -144,17 +144,17 @@ def _read_kojak(kojak_file):
     pep2 = dat["Peptide #2"].str.replace(r"\[.+?\]", "")
     link1 = dat["Linked AA #1"]
     link2 = dat["Linked AA #2"]
-    decoy1 = _all_decoy(dat["Protein #1"]) - 1
-    decoy2 = _all_decoy(dat["Protein #2"]) - 1
+    decoy1 = _all_decoy(dat["Protein #1"])
+    decoy2 = _all_decoy(dat["Protein #2"])
 
     dat["scannr"] = dat["Scan Number"]
     dat["Peptide"] = ("-." + pep1 + "(" + link1 + ")--"
                       + pep2 + "(" + link2 + ").-")
 
-    dat["Label"] = ((decoy1 * decoy2)*2 - 1)
+    dat["Label"] = (((decoy1.values - 1) * (decoy2.values - 1))*2 - 1)
 
     # rename some columns for the final file
-    dat["NumTarget"] = (decoy1 + decoy2 - 2) * -1
+    dat["NumTarget"] = (decoy1.values + decoy2.values - 2) * -1
     dat = dat.rename(columns={"Protein #1 Site": "ProteinLinkSiteA",
                               "Protein #2 Site": "ProteinLinkSiteB",
                               "Linked AA #1": "PeptideLinkSiteA",
@@ -190,6 +190,7 @@ def _read_percolator(percolator_file):
 
 
 def _all_decoy(protein_col):
+    """Returns 1 if all proteins are decoys, 0 otherwise."""
     ret = []
     protein_col = protein_col.str.split(";")
     for row in protein_col:
