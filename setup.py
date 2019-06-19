@@ -27,5 +27,10 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     license="Apache 2.0",
     entry_points={"console_scripts": ["xenith = xenith.xenith:main"]},
-    classifiers=CATAGORIES
+    classifiers=CATAGORIES,
+    install_requires=[
+        "numpy",
+        "pandas",
+        "pytorch"
+    ]
 )
