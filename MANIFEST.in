@@ -1,0 +1,2 @@
+recursive-include xenith *.py
+include README.md
