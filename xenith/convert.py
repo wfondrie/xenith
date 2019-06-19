@@ -1,7 +1,6 @@
 """
 Converters for XL-MS search engine output formats.
 """
-import csv
 from io import StringIO
 import numpy as np
 import pandas as pd
