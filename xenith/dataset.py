@@ -187,7 +187,6 @@ class PsmDataset(torch.utils.data.Dataset):
         links = peps.loc[link_idx, :]
         links = links.loc[~links.residue_key.str.contains(";")]
 
-        print(psms.columns)
         # Estimat q-values ----------------------------------------------------
         for df in (psms, peps, links):
             df["q-values"] = xenith.fdr.qvalues(df.numtarget.values,
