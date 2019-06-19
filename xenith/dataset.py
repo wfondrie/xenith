@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.utils.data
+import xenith.fdr
 
 # Classes ---------------------------------------------------------------------
 class PsmDataset(torch.utils.data.Dataset):
@@ -69,8 +70,9 @@ class PsmDataset(torch.utils.data.Dataset):
                  normalize=True, additional_metadata=None):
         """Initialize a PsmDataset"""
         meta_cols = ["specid", "numtarget", "scannr", "peptidea", "peptideb",
-                     "linksitea", "linksiteb", "proteina", "proteinb",
-                     "fileidx"]
+                     "peptidelinksitea", "peptidelinksiteb",
+                     "proteinlinksitea", "proteinlinksiteb",
+                     "proteina", "proteinb", "fileidx"]
 
         if additional_metadata is not None:
             meta_cols = meta_cols + additional_metadata
@@ -119,24 +121,81 @@ class PsmDataset(torch.utils.data.Dataset):
 
         self.metrics[name] = value
 
-    def estimate_qvalues(self, level: str) -> "pandas.DataFrame":
+    def estimate_qvalues(self, metric: str, desc: bool = True) \
+        -> "pandas.DataFrame":
         """
         Estimate q-values at the PSM, cross-link, and peptide levels.
 
+        At each level, the false discovery rate (FDR) is estimated using
+        target-decoy competition. For PSMs, ties from the same scan are
+        broken randomly. Peptide aggregation is performed using the top
+        scoring PSM for a peptide. FDR at the cross-link level is
+        estimated using only unambiguous peptides; That is, peptides
+        that correspond to a single protein and linked residue for
+        each peptide.
+
         Parameters
         ----------
+        metric : str
+            The metric by which to rank PSMs. This can either be the
+            xenith prediction ("xenith_score") or any metric added using
+            the `PsmDataset.add_metric()` method.
+
         level : str
             The level at which to estimate q-values. Can be one of
-            'psm', 'cross-link', or 'peptide'.
+            'psm', 'peptide', or 'cross-link'.
+
+        desc : bool
+            Does a higher value of metric indicate a better PSM?
 
         Returns
         -------
-        pandas.DataFrame
-            A DataFrame with the q-values at the requested level.
+        tuple(pandas.DataFrame, pandas.DataFrame, pandas.DataFrame)
+            A DataFrame with the q-values at the PSM, peptide, and
+            cross-link level, respectively.
         """
-        res_df = pd.concat(self.metadata, self.metrics)
+        res_df = self.metrics[metric]
+        res_df = pd.concat([self.metadata, res_df], axis=1)
 
-        return res_df
+        # Generate keys for grouping
+        pep_site1 = res_df.peptidea + "_" + res_df.peptidelinksitea.astype(str)
+        pep_site2 = res_df.peptideb + "_" + res_df.peptidelinksiteb.astype(str)
+        prot_site1 = res_df.proteina + "_" + res_df.proteinlinksitea
+        prot_site2 = res_df.proteinb + "_" + res_df.proteinlinksiteb
+
+        res_df["residue_key"] = ["--".join(sorted(x))
+                                 for x in zip(prot_site1, prot_site2)]
+
+        res_df["peptide_key"] = ["--".join(sorted(x))
+                                 for x in zip(pep_site1, pep_site2)]
+
+        # randomize the df, so that ties are broken randomly
+        res_df = res_df.sample(frac=1).reset_index(drop=True)
+
+        psm_cols = ["fileidx", "scannr"]
+
+        # PSM FDR -------------------------------------------------------------
+        psm_idx = res_df.groupby(psm_cols)[metric].idxmax()
+        psms = res_df.loc[psm_idx, :]
+
+        # Peptide FDR ---------------------------------------------------------
+        pep_idx = psms.groupby("peptide_key")[metric].idxmax()
+        peps = psms.loc[pep_idx, :]
+
+        # Cross-Link FDR ------------------------------------------------------
+        link_idx = peps.groupby("residue_key")[metric].idxmax()
+        links = peps.loc[link_idx, :]
+        links = links.loc[~links.residue_key.str.contains(";")]
+
+        print(psms.columns)
+        # Estimat q-values ----------------------------------------------------
+        for df in (psms, peps, links):
+            df["q-values"] = xenith.fdr.qvalues(df.numtarget.values,
+                                                df[metric].values,
+                                                desc=desc)
+            df.sort_values(by="q-values").reset_index(drop=True)
+
+        return (psms, peps, links)
 
 
 # Functions -------------------------------------------------------------------

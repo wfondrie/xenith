@@ -56,7 +56,8 @@ def convert_kojak(kojak: str, perc_inter: str, perc_intra: str, out_file: str,
 
     # Drop unwanted columns
     xenith_target = ["NumTarget"]
-    xenith_tail = ["LinkSiteA", "LinkSiteB", "ProteinA", "ProteinB", "PeptideA",
+    xenith_tail = ["ProteinLinkSiteA", "ProteinLinkSiteB", "PeptideLinkSiteA",
+                   "PeptideLinkSiteB", "ProteinA", "ProteinB", "PeptideA",
                    "PeptideB"]
 
     perc_target = ["Label"]
@@ -154,15 +155,18 @@ def _read_kojak(kojak_file):
 
     # rename some columns for the final file
     dat["NumTarget"] = (decoy1 + decoy2 - 2) * -1
-    dat = dat.rename(columns={"Linked AA #1": "LinkSiteA",
-                              "Linked AA #2": "LinkSiteB",
+    dat = dat.rename(columns={"Protein #1 Site": "ProteinLinkSiteA",
+                              "Protein #2 Site": "ProteinLinkSiteB",
+                              "Linked AA #1": "PeptideLinkSiteA",
+                              "Linked AA #2": "PeptideLinkSiteB",
                               "Protein #1": "ProteinA",
                               "Protein #2": "ProteinB",
                               "Peptide #1": "PeptideA",
                               "Peptide #2": "PeptideB"})
 
-    final_cols = ["NumTarget", "LinkSiteA", "LinkSiteB", "ProteinA", "ProteinB",
-                  "PeptideA", "PeptideB"]
+    final_cols = ["NumTarget", "ProteinA", "ProteinB", "PeptideA", "PeptideB",
+                  "ProteinLinkSiteA", "ProteinLinkSiteB",
+                  "PeptideLinkSiteA", "PeptideLinkSiteB"]
 
     dat = dat.loc[:, key_cols + final_cols]
     return (dat, key_cols)
