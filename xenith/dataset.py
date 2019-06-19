@@ -69,7 +69,7 @@ class PsmDataset(torch.utils.data.Dataset):
     def __init__(self, psm_files, device, feat_mean=None, feat_stdev=None,
                  normalize=True, additional_metadata=None):
         """Initialize a PsmDataset"""
-        meta_cols = ["specid", "numtarget", "scannr", "peptidea", "peptideb",
+        meta_cols = ["psmid", "numtarget", "scannr", "peptidea", "peptideb",
                      "peptidelinksitea", "peptidelinksiteb",
                      "proteinlinksitea", "proteinlinksiteb",
                      "proteina", "proteinb", "fileidx"]
@@ -160,8 +160,10 @@ class PsmDataset(torch.utils.data.Dataset):
         # Generate keys for grouping
         pep_site1 = res_df.peptidea + "_" + res_df.peptidelinksitea.astype(str)
         pep_site2 = res_df.peptideb + "_" + res_df.peptidelinksiteb.astype(str)
-        prot_site1 = res_df.proteina + "_" + res_df.proteinlinksitea
-        prot_site2 = res_df.proteinb + "_" + res_df.proteinlinksiteb
+        prot_site1 = (res_df.proteina + "_"
+                      + res_df.proteinlinksitea.astype(str))
+        prot_site2 = (res_df.proteinb + "_"
+                      + res_df.proteinlinksiteb.astype(str))
 
         res_df["residue_key"] = ["--".join(sorted(x))
                                  for x in zip(prot_site1, prot_site2)]
@@ -188,16 +190,53 @@ class PsmDataset(torch.utils.data.Dataset):
         links = links.loc[~links.residue_key.str.contains(";")]
 
         # Estimat q-values ----------------------------------------------------
-        for df in (psms, peps, links):
-            df["q-values"] = xenith.fdr.qvalues(df.numtarget.values,
-                                                df[metric].values,
-                                                desc=desc)
-            df.sort_values(by="q-values").reset_index(drop=True)
+        out_list = []
+        for dat in (psms, peps, links):
+            dat["q-values"] = xenith.fdr.qvalues(dat.numtarget.values,
+                                                 dat[metric].values,
+                                                 desc=desc)
+            dat.sort_values(metric, ascending=(not desc), inplace=True)
+            dat.reset_index(drop=True, inplace=True)
+            out_list.append(_format_output(dat, metric))
 
-        return (psms, peps, links)
-
+        return out_list
 
 # Functions -------------------------------------------------------------------
+def _format_output(out_df, metric):
+    """
+    Format the output dataframe from estimate_qvalues()
+
+    Parameters
+    ----------
+    out_df : pandas.DataFrame
+        The dataframe with q-values and the other output columns.
+    """
+    order = ["fileidx", "psmid", "numtarget", "scannr", metric,
+             "q-values", "peptidea", "peptideb", "peptidelinksitea",
+             "peptidelinksiteb", "proteinlinksitea", "proteinlinksiteb",
+             "proteina", "proteinb"]
+
+    out_df = out_df.loc[:, order]
+
+    out_df = out_df.rename(columns={"fileidx": "FileIdx",
+                                    "psmid": "PsmId",
+                                    "numtarget": "NumTarget",
+                                    "scannr": "ScanNr",
+                                    "peptidea": "PeptideA",
+                                    "peptideb": "PeptideB",
+                                    "peptidelinksitea": "PeptideLinkSiteA",
+                                    "peptidelinksiteb": "PeptideLinkSiteB",
+                                    "proteinlinksitea": "ProteinLinkSiteA",
+                                    "proteinlinksiteb": "ProteinLinkSiteB",
+                                    "proteina": "ProteinA",
+                                    "proteinb": "ProteinB"})
+
+    return out_df
+
+
+
+
+
 def _process_features(feat_df, feat_mean, feat_stdev, normalize):
     """
     Process a dataframe of features.

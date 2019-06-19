@@ -35,12 +35,13 @@ def qvalues(num_targets, metric, desc=True):
 
     metric = metric[srt_idx]
     num_targets = num_targets[srt_idx]
-    num_total = num_targets.cumsum()
+    num_total = np.ones(len(num_targets)).cumsum()
     target = (num_targets == 2).cumsum()
     one_decoy = (num_targets == 1).cumsum()
     two_decoy = (num_targets == 0).cumsum()
 
     fdr = (one_decoy - two_decoy) / target
+    fdr[fdr < 0] = 0
 
     # FDR -> q-values ---------------------------------------------------------
     unique_metric, indices = np.unique(metric, return_counts=True)
@@ -68,7 +69,7 @@ def qvalues(num_targets, metric, desc=True):
         if curr_fdr[0] < min_q:
             min_q = curr_fdr[0]
 
-        group_fdr[group]  = curr_fdr
+        group_fdr[group] = curr_fdr
         qvals[group] = min_q
 
     # Restore original order

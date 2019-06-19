@@ -97,6 +97,7 @@ def convert_kojak(kojak: str, perc_inter: str, perc_intra: str, out_file: str,
     cols = merged.columns.tolist()
     middle = [col for col in cols if col not in head + tail]
     merged = merged.loc[:, head + middle + tail]
+    merged = merged.rename(columns={"SpecId": "PsmId"})
 
     if not to_pin:
         merged.to_csv(out_file, sep="\t", index=False)
