@@ -9,7 +9,7 @@ python:
 sudo: false
 
 install:
-  - pip install codecov
+  - pip install numpy pandas codecov torch
   - pip install -e .
 
 script:
@@ -17,6 +17,3 @@ script:
 
 after_success:
   - codecov
-
-
-
