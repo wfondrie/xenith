@@ -180,6 +180,7 @@ def _read_percolator(percolator_file):
         csv.write(header.replace("\t", ","))
 
         for line in pin:
+            line = line.replace(",", ";")
             csv.write(line.replace("\t", ",", splits))
 
         csv.seek(0)
