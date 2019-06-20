@@ -42,11 +42,11 @@ def convert_kojak(kojak: str, perc_inter: str, perc_intra: str, out_file: str,
     """
     kojak_df, key_cols = _read_kojak(kojak)
     inter = _read_percolator(perc_inter)
-    inter["intraprotein"] = 0
+    #inter["intraprotein"] = 0
     inter.SpecId = inter.SpecId + "-inter"
 
     intra = _read_percolator(perc_intra)
-    intra["intraprotein"] = 1
+    #intra["intraprotein"] = 1
     intra.SpecId = intra.SpecId + "-intra"
 
     perc_df = pd.concat([inter, intra])

@@ -97,5 +97,5 @@ class SigmoidLoss(nn.Module):
         """
         eps = torch.finfo(score.dtype).eps
         pred = torch.sigmoid(score).clamp(min=eps, max=1 - eps)
-        loss = target * (1 - pred) + (1 - target) * pred
+        loss = target * (1 - pred) + (1 - target) * -torch.log(1 - pred)
         return loss.mean()

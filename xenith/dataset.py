@@ -57,9 +57,9 @@ class PsmDataset(torch.utils.data.Dataset):
         peptides are a decoy sequence. `1` indicates target, `0`
         indicates decoy.
 
-    metrics : pandas.DataFrame
+    prediction : pandas.DataFrame
         The model predictions. If no predictions have been made,
-        this is `None`.
+        this is an empty dataframe.
 
     feat_mean : pd.DataFrame
     feat_stdev : pd.DataFrame
@@ -90,8 +90,9 @@ class PsmDataset(torch.utils.data.Dataset):
         self.feat_stdev = norm_feat[2]
 
         self.features = torch.FloatTensor(norm_feat[0].values).to(device)
-        self.target = torch.FloatTensor(self.metadata.numtarget == 2).to(device)
-        self.metrics = pd.DataFrame()
+        self.target = self.metadata.numtarget.values == 2
+        self.target = torch.FloatTensor(self.target.astype(int)).to(device)
+        self.prediction = pd.DataFrame()
         self._feat_df = feat_df
 
     def __len__(self):
@@ -102,27 +103,9 @@ class PsmDataset(torch.utils.data.Dataset):
         """Generate one sample of data"""
         return [self.target[idx], self.features[idx, :]]
 
-    def add_metric(self, name, value=None):
-        """
-        Add a scoring metric
-
-        Parameters
-        ----------
-        name : str
-            Name of the new metric.
-
-        value : array-like or None
-            The metric values, such as the predictions from a
-            XenithModel. If `None`, a feature that matches
-            the `name` argument will be used.
-        """
-        if value is None:
-            value = self._feat_df[name]
-
-        self.metrics[name] = value
-
-    def estimate_qvalues(self, metric: str, desc: bool = True) \
-        -> "pandas.DataFrame":
+    def estimate_qvalues(self, metric: str = "XenithScore",
+                         desc: bool = True) \
+        -> "Tuple(pandas.DataFrame, pandas.DataFrame, pandas.DataFrame)":
         """
         Estimate q-values at the PSM, cross-link, and peptide levels.
 
@@ -138,8 +121,7 @@ class PsmDataset(torch.utils.data.Dataset):
         ----------
         metric : str
             The metric by which to rank PSMs. This can either be the
-            xenith prediction ("xenith_score") or any metric added using
-            the `PsmDataset.add_metric()` method.
+            xenith prediction ("xenith_score") or any feature.
 
         level : str
             The level at which to estimate q-values. Can be one of
@@ -154,7 +136,12 @@ class PsmDataset(torch.utils.data.Dataset):
             A DataFrame with the q-values at the PSM, peptide, and
             cross-link level, respectively.
         """
-        res_df = self.metrics[metric]
+        if metric == "XenithScore":
+            res_df = self.prediction.XenithScore
+        else:
+            metric = metric.lower()
+            res_df = self._feat_df[metric]
+
         res_df = pd.concat([self.metadata, res_df], axis=1)
 
         # Generate keys for grouping
@@ -189,7 +176,7 @@ class PsmDataset(torch.utils.data.Dataset):
         links = peps.loc[link_idx, :]
         links = links.loc[~links.residue_key.str.contains(";")]
 
-        # Estimat q-values ----------------------------------------------------
+        # Estimate q-values ----------------------------------------------------
         out_list = []
         for dat in (psms, peps, links):
             dat["q-values"] = xenith.fdr.qvalues(dat.numtarget.values,
@@ -232,9 +219,6 @@ def _format_output(out_df, metric):
                                     "proteinb": "ProteinB"})
 
     return out_df
-
-
-
 
 
 def _process_features(feat_df, feat_mean, feat_stdev, normalize):
@@ -333,4 +317,6 @@ def _parse_psms(psm_files, meta_cols):
 
         psm_list.append(psms)
 
-    return pd.concat(psm_list)
+    psms = pd.concat(psm_list)
+    psms = psms.reset_index(drop=True)
+    return psms

@@ -102,7 +102,8 @@ class XenithModel():
 
         pred = self.model(psms.features)
         pred = pred.detach().cpu().numpy().flatten()
-        psms.add_metric("xenith_score", pred)
+
+        psms.prediction["XenithScore"] = pred
 
         return psms
 
@@ -170,7 +171,7 @@ class XenithModel():
         loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size,
                                              shuffle=True, drop_last=True)
         optimizer = torch.optim.Adam(self.model.parameters(), lr=learn_rate,
-                                     weight_decay=weight_decay)
+                                     weight_decay=weight_decay, amsgrad=True)
 
         # Set tracking variables
         best_epoch = 0
@@ -181,8 +182,7 @@ class XenithModel():
 
         # The main training loop
         for epoch in range(max_epochs):
-            loss = _train_batch(loader, self.model, optimizer, sig_loss)
-
+            # Evaluate and update trackers ------------------------------------
             with torch.no_grad():
                 self.model.eval()
                 train_pred = self.model(train_set.features)
@@ -204,6 +204,10 @@ class XenithModel():
             else:
                 stop_counter += 1
 
+            # The important bit -----------------------------------------------
+            loss = _train_batch(loader, self.model, optimizer, sig_loss)
+
+            # Wrap up ---------------------------------------------------------
             _train_message(epoch, train_loss, val_loss)
 
             if np.isnan(loss):

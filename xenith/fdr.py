@@ -36,9 +36,9 @@ def qvalues(num_targets, metric, desc=True):
     metric = metric[srt_idx]
     num_targets = num_targets[srt_idx]
     num_total = np.ones(len(num_targets)).cumsum()
-    target = (num_targets == 2).cumsum()
-    one_decoy = (num_targets == 1).cumsum()
-    two_decoy = (num_targets == 0).cumsum()
+    target = (num_targets == 2).astype(int).cumsum()
+    one_decoy = (num_targets == 1).astype(int).cumsum()
+    two_decoy = (num_targets == 0).astype(int).cumsum()
 
     fdr = (one_decoy - two_decoy) / target
     fdr[fdr < 0] = 0
