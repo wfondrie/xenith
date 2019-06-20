@@ -40,7 +40,10 @@ def qvalues(num_targets, metric, desc=True):
     one_decoy = (num_targets == 1).astype(int).cumsum()
     two_decoy = (num_targets == 0).astype(int).cumsum()
 
-    fdr = (one_decoy - two_decoy) / target
+    # Ignore div by zero, since a decoy may come first
+    with np.errstate(divide="ignore"):
+        fdr = (one_decoy - two_decoy) / target
+
     fdr[fdr < 0] = 0
 
     # FDR -> q-values ---------------------------------------------------------

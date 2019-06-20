@@ -97,5 +97,46 @@ class SigmoidLoss(nn.Module):
         """
         eps = torch.finfo(score.dtype).eps
         pred = torch.sigmoid(score).clamp(min=eps, max=1 - eps)
-        loss = target * (1 - pred) + (1 - target) * -torch.log(1 - pred)
+        loss = target * (1 - pred) + (1 - target) * pred
+        return loss.mean()
+
+
+class HybridLoss(nn.Module):
+    """
+    Create a hybrid loss criterion.
+
+    The hybrid loss function uses a log loss form for Decoy labels and a
+    sigmoid loss for Target labels. The hybrid loss function takes the
+    output score, :math:`S`, and the target, :math:`Y`, to calculate the
+    mean loss, :math:`L`, using:
+
+    ..math::
+        L = Y*(1 - \sigma(S)) - (1-Y)*log(1 - (\sigma(S)))
+
+    where:
+
+    ..math::
+        \sigma(S) = \frac{1}{1+exp(-S)}
+    """
+    def __init__(self):
+        """Initialize a SigmoidLoss object"""
+        super(SigmoidLoss, self).__init__()
+
+    def forward(self, score, target):
+        """
+        Calculate the loss using a sigmoid loss function.
+
+        Parameters
+        ----------
+        score : torch.FloatTensor
+            A 1D tensor of the scores output from a model. These should
+            not be sigmoided.
+
+        target : torch.ByteTensor
+            A 1D tensor of indicating the truth. In the case of xenith
+            '1' indicates a target hit and '0' indicates a decoy hit.
+        """
+        eps = torch.finfo(score.dtype).eps
+        pred = torch.sigmoid(score).clamp(min=eps, max=1 - eps)
+        loss = target * (1 - pred) - (1 - target) * torch.log(1 - pred)
         return loss.mean()
