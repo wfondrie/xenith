@@ -77,3 +77,15 @@ def test_ascending_score(dataset):
                              np.testing.assert_array_equal,
                              dataset.qvalues.values,
                              bad_qvals)
+
+
+def test_errors(dataset):
+    """
+    Test that errors arise in the following scenarios:
+    1) 'metric' and 'num_targets' are different sizes
+    """
+    targ = np.random.randint(0, 2, size=10)
+    score = np.random.normal(size=11)
+
+    with pytest.raises(ValueError):
+        xenith.fdr.qvalues(num_targets=targ, metric=score)
