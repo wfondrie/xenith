@@ -7,7 +7,7 @@ python:
 sudo: false
 
 install:
-  - pip install numpy pandas codecov torch
+  - pip install numpy pandas torch codecov pytest pytest-cov
   - pip install -e .
 
 script:
