@@ -31,6 +31,6 @@ setuptools.setup(
     install_requires=[
         "numpy",
         "pandas",
-        "pytorch"
+        "torch"
     ]
 )
