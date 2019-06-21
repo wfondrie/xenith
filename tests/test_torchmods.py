@@ -11,9 +11,9 @@ import xenith.torchmods as mods
 
 def test_mlp_creation():
     """Verifies that models are created without errors"""
-    mods.MLP(input_dim=5, layers=[3, 2, 1])
-    mods.MLP(input_dim=5, layers=(3, 2, 1))
-    mods.MLP(input_dim=5, layers=3)
+    mods.MLP(input_dim=5, hidden_dims=[3, 2, 1])
+    mods.MLP(input_dim=5, hidden_dims=(3, 2, 1))
+    mods.MLP(input_dim=5, hidden_dims=3)
 
     # invalid mods
     with pytest.raises(ValueError):
