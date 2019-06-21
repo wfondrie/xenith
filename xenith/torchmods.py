@@ -41,7 +41,7 @@ class MLP(nn.Module):
         in_layers = [input_dim] + layers
         out_layers = layers + [1]
         for idx, in_layer in enumerate(in_layers):
-            self.add_module("Linear_{}".format(idx),
+            self.add_module("linear_{}".format(idx),
                             nn.Linear(in_layer, out_layers[idx]))
 
     def forward(self, x):
@@ -134,7 +134,7 @@ class HybridLoss(nn.Module):
     """
     def __init__(self):
         """Initialize a SigmoidLoss object"""
-        super(SigmoidLoss, self).__init__()
+        super(HybridLoss, self).__init__()
 
     def forward(self, score, target):
         """
