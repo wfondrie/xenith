@@ -18,15 +18,26 @@ class MLP(nn.Module):
     input_dim : int
         The number of input features.
 
-    layers : list of int
+    hidden_dims : list of int
         The number of neurons in each hidden layer. Each element
         specifies a new hidden layer.
     """
-    def __init__(self, input_dim, layers):
+    def __init__(self, input_dim, hidden_dims):
         """Instantiate an MLP object"""
         super(MLP, self).__init__()
-        layers = list(layers)
+        layers = hidden_dims # for consistency
 
+        if not input_dim or not isinstance(input_dim, int):
+            raise ValueError("'input_dim' must be a non-zero integer.")
+
+        if isinstance(layers, int):
+            layers = [layers]
+
+        if not all(layers) or not all(isinstance(l, int) for l in layers):
+            raise ValueError("'hidden_dims' must be a list of non-zero "
+                             "integers.")
+
+        layers = list(layers) # needed if layers is a Tuple.
         in_layers = [input_dim] + layers
         out_layers = layers + [1]
         for idx, in_layer in enumerate(in_layers):
@@ -53,6 +64,9 @@ class Linear(nn.Module):
     """
     def __init__(self, input_dim):
         """Instantiate a linear model"""
+        if not input_dim or not isinstance(input_dim, int):
+            raise ValueError("'input_dim' must be a non-zero integer.")
+
         super(Linear, self).__init__()
         self.linear = nn.Linear(input_dim, 1)
 

@@ -44,6 +44,11 @@ class XenithModel():
         self.feat_stdev = feat_stdev
         self.hidden_dims = hidden_dims
 
+    def count_parameters(self):
+        """Return the number of trainable parameters in the model."""
+        mod = self.model
+        return sum(p.numel() for p in mod.parameters() if p.requires_grad)
+
     def save(self, file_name: str) -> None:
         """
         Save a XenithModel object to a file.
