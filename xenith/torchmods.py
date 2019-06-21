@@ -109,6 +109,12 @@ class SigmoidLoss(nn.Module):
             A 1D tensor of indicating the truth. In the case of xenith
             '1' indicates a target hit and '0' indicates a decoy hit.
         """
+        if not score.is_floating_point():
+            score = score.float()
+
+        if not target.is_floating_point():
+            target = target.float()
+
         eps = torch.finfo(score.dtype).eps
         pred = torch.sigmoid(score).clamp(min=eps, max=1 - eps)
         loss = target * (1 - pred) + (1 - target) * pred
@@ -150,6 +156,12 @@ class HybridLoss(nn.Module):
             A 1D tensor of indicating the truth. In the case of xenith
             '1' indicates a target hit and '0' indicates a decoy hit.
         """
+        if not score.is_floating_point():
+            score = score.float()
+
+        if not target.is_floating_point():
+            target = target.float()
+
         eps = torch.finfo(score.dtype).eps
         pred = torch.sigmoid(score).clamp(min=eps, max=1 - eps)
         loss = target * (1 - pred) - (1 - target) * torch.log(1 - pred)

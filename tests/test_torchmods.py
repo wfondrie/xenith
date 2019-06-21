@@ -75,3 +75,60 @@ def test_lm_iscorrect():
     output = torch.FloatTensor([[34]])
 
     assert torch.allclose(lm(input), output)
+
+
+def test_sigmoid_loss():
+    """Test that the sigmoid loss function works correctly"""
+    sig_loss = mods.SigmoidLoss()
+
+    high = torch.FloatTensor([1000])
+    low = torch.FloatTensor([-1000])
+    mid = torch.FloatTensor([0])
+
+    target_high = sig_loss(high, torch.tensor([1]))
+    target_low = sig_loss(low, torch.tensor([1]))
+    target_mid = sig_loss(mid, torch.tensor([1]))
+
+    decoy_high = sig_loss(high, torch.tensor([0]))
+    decoy_low = sig_loss(low, torch.tensor([0]))
+    decoy_mid = sig_loss(mid, torch.tensor([0]))
+
+    correct = torch.FloatTensor([0])
+    incorrect = torch.FloatTensor([1])
+    midway = torch.FloatTensor([0.5])
+
+    assert torch.allclose(target_high, correct, atol=2e-7)
+    assert torch.allclose(target_low, incorrect, atol=2e-7)
+    assert torch.allclose(target_mid, midway)
+    assert torch.allclose(decoy_high, incorrect, atol=2e-7)
+    assert torch.allclose(decoy_low, correct, atol=2e-7)
+    assert torch.allclose(decoy_mid, midway)
+
+
+def test_hybrid_loss():
+    hybrid_loss = mods.HybridLoss()
+
+    high = torch.FloatTensor([1000])
+    low = torch.FloatTensor([-1000])
+    mid = torch.FloatTensor([0])
+
+    target_high = hybrid_loss(high, torch.tensor([1]))
+    target_low = hybrid_loss(low, torch.tensor([1]))
+    target_mid = hybrid_loss(mid, torch.tensor([1]))
+
+    decoy_high = hybrid_loss(high, torch.tensor([0]))
+    decoy_low = hybrid_loss(low, torch.tensor([0]))
+    decoy_mid = hybrid_loss(mid, torch.tensor([0]))
+
+    correct = torch.FloatTensor([0])
+    incorrect_target = torch.FloatTensor([1])
+    midway_target = torch.FloatTensor([0.5])
+    incorrect_decoy = torch.FloatTensor([15.9424])
+    midway_decoy = torch.FloatTensor([0.6931])
+
+    assert torch.allclose(target_high, correct, atol=2e-7)
+    assert torch.allclose(target_low, incorrect_target, atol=2e-7)
+    assert torch.allclose(target_mid, midway_target)
+    assert torch.allclose(decoy_high, incorrect_decoy, atol=1e-4)
+    assert torch.allclose(decoy_low, correct, atol=2e-7)
+    assert torch.allclose(decoy_mid, midway_decoy, atol=1e-4)
