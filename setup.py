@@ -7,8 +7,7 @@ import xenith
 with open("README.md", "r") as readme:
     LONG_DESC = readme.read()
 
-DESC = ("Enhanced cross-linked peptide detection using pretrained neural "
-        "networks")
+DESC = ("Enhanced cross-linked peptide detection using pretrained models")
 
 CATAGORIES = ["Programming Language :: Python :: 3",
               "License :: OSI Approved :: Apache Software License",
