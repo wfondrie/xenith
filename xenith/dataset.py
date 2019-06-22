@@ -2,6 +2,7 @@
 Defines the PsmDataset set class and the auxiliary functions needed to
 easily construct one.
 """
+import logging
 import numpy as np
 import pandas as pd
 import torch
@@ -35,9 +36,6 @@ class PsmDataset(torch.utils.data.Dataset):
         Additional columns to be considered metadata. This can be useful
         for removing specific features.
 
-    device : torch.device
-        The device on which to put the tensors
-
     Attributes
     ----------
     metadata : pandas.DataFrame
@@ -61,12 +59,12 @@ class PsmDataset(torch.utils.data.Dataset):
         The model predictions. If no predictions have been made,
         this is an empty dataframe.
 
-    feat_mean : pd.DataFrame
-    feat_stdev : pd.DataFrame
-        Wide dataframes containing the mean and standard deviation
-        used for the normalization of each feature.
+    feat_mean : pd.Series
+    feat_stdev : pd.Series
+        pandas Series containing the mean and standard deviation used for the
+        normalization of each feature.
     """
-    def __init__(self, psm_files, device, feat_mean=None, feat_stdev=None,
+    def __init__(self, psm_files, feat_mean=None, feat_stdev=None,
                  normalize=True, additional_metadata=None):
         """Initialize a PsmDataset"""
         meta_cols = ["psmid", "numtarget", "scannr", "peptidea", "peptideb",
@@ -89,9 +87,9 @@ class PsmDataset(torch.utils.data.Dataset):
         self.feat_mean = norm_feat[1]
         self.feat_stdev = norm_feat[2]
 
-        self.features = torch.FloatTensor(norm_feat[0].values).to(device)
+        self.features = torch.FloatTensor(norm_feat[0].values)
         self.target = self.metadata.numtarget.values == 2
-        self.target = torch.FloatTensor(self.target.astype(int)).to(device)
+        self.target = torch.FloatTensor(self.target.astype(int))
         self.prediction = pd.DataFrame()
         self._feat_df = feat_df
 
@@ -302,14 +300,16 @@ def _parse_psms(psm_files, meta_cols):
     for idx, psm_file in enumerate(psm_files):
         psms = pd.read_csv(psm_file, sep="\t")
         psms.columns = psms.columns.str.lower()
+
+        logging.info("Assigning fileidx %s to %s.", idx, psm_file)
         psms["fileidx"] = idx
 
         if not idx:
             feat_set = set(psms.columns)
 
         if not set(meta_cols) <= set(psms.columns):
-            raise RuntimeError(f"{psm_file} does not contain the expected "
-                               "columns for xenith. See ? for details.")
+            raise RuntimeError(f"{psm_file} does not contain the required "
+                               "columns for xenith. See README for details.")
 
         if not feat_set == set(psms.columns):
             raise RuntimeError(f"Features in {psm_file} do not match the"
