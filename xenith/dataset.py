@@ -248,10 +248,14 @@ def _process_features(feat_df, feat_mean, feat_stdev, normalize):
         A tuple of dataframes containing the normalized features, the
         employed feat_mean, and the employed feat_stdev, in order.
     """
+    if not all(np.issubdtype(col.dtype, np.number)
+               for _, col in feat_df.iteritems()):
+        raise ValueError("All feature columns must be numeric.")
+
     if feat_mean is None:
-        feat_mean = feat_df.mean(numeric_only=True)
+        feat_mean = feat_df.mean()
     if feat_stdev is None:
-        feat_stdev = feat_df.std(ddof=0, numeric_only=True)
+        feat_stdev = feat_df.std(ddof=0)
 
     feat_set = set(feat_df.columns)
     feat_mean_set = set(feat_mean.index)

@@ -56,3 +56,23 @@ def test_parsing(psm_txt):
     # Try reading a file, but it doesn't have a required column
     with pytest.raises(RuntimeError):
         xenith.dataset._parse_psms(psm_txt[0], ["blah"])
+
+
+@pytest.fixture
+def toy_features():
+    """
+    Generate a sample feature dataframe with one column that isn't a
+    feature.
+    """
+    feat = pd.DataFrame({"A": [1, 2, 3],
+                         "B": [4, 5, 6],
+                         "C": [7, 8, 9],
+                         "D": ["a", "b", "c"]})
+
+    return (feat, feat.loc[:, ["A", "B", "C"]])
+
+#def test_features(toy_features):
+#    """Verify feature normalization and error checking works"""
+#    print(xenith.dataset._process_features(toy_features[1],
+#                                           None, None, True))
+#    assert 0
