@@ -3,8 +3,8 @@ Test the functionality of the 'PsmDataset' class and the auxiliary
 functions in the 'dataset' module
 """
 import os
-import io
 import pytest
+import torch
 import numpy as np
 import pandas as pd
 
@@ -71,8 +71,72 @@ def toy_features():
 
     return (feat, feat.loc[:, ["A", "B", "C"]])
 
-#def test_features(toy_features):
-#    """Verify feature normalization and error checking works"""
-#    print(xenith.dataset._process_features(toy_features[1],
-#                                           None, None, True))
-#    assert 0
+def test_features(toy_features):
+    """Verify basic feature processing and error checking works"""
+    feat = xenith.dataset._process_features(toy_features[1],
+                                            feat_mean=None,
+                                            feat_stdev=None,
+                                            normalize=True)
+
+    val = 1.224745
+    norm_feat = np.array([[-val]*3, [0]*3, [val]*3])
+    fmean = np.array([2, 5, 8])
+    fstdev = np.std([1,2,3], ddof=0)
+
+    assert np.allclose(feat[0].values, norm_feat, atol=1e-6)
+    assert np.allclose(fmean, feat[1])
+    assert np.allclose(fstdev, feat[2])
+
+    # Non-numeric columns should raise a ValueError
+    with pytest.raises(ValueError):
+        xenith.dataset._process_features(toy_features[0],
+                                         feat_mean=None,
+                                         feat_stdev=None,
+                                         normalize=True)
+
+
+def test_feature_norm_off(toy_features):
+    """Test that 'normalization' of _process_features() works"""
+    feat = xenith.dataset._process_features(toy_features[1],
+                                            feat_mean=None,
+                                            feat_stdev=None,
+                                            normalize=False)
+
+    assert np.allclose(feat[0].values, toy_features[1].values)
+
+def test_feature_custom_norm(toy_features):
+    """
+    Test using a custom mean and standard deviation in
+    _process_features() works.
+    """
+    fmean = pd.Series([1, 1, 1], index=["A", "B", "C"])
+    fstdev = pd.Series([1, 1, 1], index=["A", "B", "C"])
+    norm_feat = np.transpose(np.array([[0, 1, 2], [3, 4, 5], [6, 7, 8]]))
+    feat = xenith.dataset._process_features(toy_features[1],
+                                            feat_mean=fmean,
+                                            feat_stdev=fstdev,
+                                            normalize=True)
+
+    assert np.allclose(norm_feat, feat[0].values)
+    assert np.allclose(fmean.values, feat[1].values)
+    assert np.allclose(fstdev.values, feat[2].values)
+
+def test_feature_mismatch(toy_features):
+    """
+    Test that discrepancies between the features and the normalization factors
+    raise appropriate errors.
+    """
+    fmean = pd.Series([1, 1], index=["A", "B"])
+    fstdev = pd.Series([1, 1], index=["A", "B"])
+
+    with pytest.raises(RuntimeError):
+        xenith.dataset._process_features(toy_features[1],
+                                         feat_mean=fmean,
+                                         feat_stdev=None,
+                                         normalize=True)
+
+    with pytest.raises(RuntimeError):
+        xenith.dataset._process_features(toy_features[1],
+                                         feat_mean=fmean,
+                                         feat_stdev=fstdev,
+                                         normalize=True)
