@@ -7,3 +7,4 @@ __version__ = "0.0.1"
 
 from .convert import convert_kojak
 from .models import from_percolator, load_model, new_model
+from .xenith import load_psms

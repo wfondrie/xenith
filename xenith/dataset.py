@@ -3,6 +3,8 @@ Defines the PsmDataset set class and the auxiliary functions needed to
 easily construct one.
 """
 import logging
+from typing import Tuple
+
 import numpy as np
 import pandas as pd
 import torch
@@ -10,7 +12,69 @@ import torch.utils.data
 import xenith.fdr
 
 # Classes ---------------------------------------------------------------------
-class PsmDataset(torch.utils.data.Dataset):
+class _PsmDataset(torch.utils.data.Dataset):
+    """
+    A Dataset class for using a XenithDataset with pytorch models.
+
+    While the XenithDataset stores the features, metadata, and
+    predictions in pandas.DataFrames, the _PsmDataset class stores
+    the normalized features and targets each as a torch.FloatTensor().
+
+    Parameters
+    ----------
+    xenith_dataset : xenith.XenithDataset
+        A XenithDataset object to get the features and target
+        information from.
+
+    feat_mean : pd.Series
+    feat_stdev : pd.Series
+        pandas Series containing the mean and standard deviation used for the
+        normalization of each feature. If `None`, the these are calculated
+        from the XenithDataset.features.
+
+    normalize : bool
+        Should features be normalized?
+
+    Attributes
+    ----------
+    features : torch.FloatTensor
+        A 2D tensor containing the normalized features. Dimension 0 is
+        each a PSM and dimensions 1 are features
+
+    target : torch.FloatTensor
+        A 1D tensor indicating whether the PSM is a target hit or not.
+        target-target hits are 1, whereas target-decoy and decoy-decoy
+        hits are 0.
+
+    feat_mean : pd.Series
+    feat_stdev : pd.Series
+        pandas Series containing the mean and standard deviation that were
+        used for the normalization of each feature, if normalization was
+        performed.
+    """
+    def __init__(self, xenith_dataset, feat_mean, feat_stdev, normalize):
+        """Instantiate a _PsmDataset object"""
+        norm_feat = _process_features(xenith_dataset.features,
+                                      feat_mean=feat_mean,
+                                      feat_stdev=feat_stdev,
+                                      normalize=normalize)
+
+        self.feat_mean = norm_feat[1]
+        self.feat_stdev = norm_feat[2]
+        self.features = torch.FloatTensor(norm_feat[0].values)
+        self.target = xenith_dataset.metadata.numtarget.values == 2
+        self.target = torch.FloatTensor(self.target.astype(int))
+
+    def __len__(self):
+        """Get the total number of samples"""
+        return len(self.target)
+
+    def __getitem__(self, idx):
+        """Generate one sample of data"""
+        return [self.target[idx], self.features[idx, :]]
+
+
+class XenithDataset():
     """
     Manage a collection of PSMs.
 
@@ -20,9 +84,9 @@ class PsmDataset(torch.utils.data.Dataset):
         The files from which to load a set of PSMs. These should be in
         the xenith tab-delimited format.
 
-    addtional_metadata : tuple of str
-        Additional columns to be considered metadata. This can be useful
-        for removing specific features.
+    additional_metadata : tuple of str
+        Additional columns to be considered as metadata. The columns
+        specified here will not be included as features.
 
     Attributes
     ----------
@@ -30,30 +94,17 @@ class PsmDataset(torch.utils.data.Dataset):
         A dataframe containing all non-feature information about the
         PSMs.
 
-    feature_names : list
-        A list of the parsed feature names.
-
-    features : torch.FloatTensor
-        A 2D tensor containing the features needed for
+    features : pandas.DataFrame
+        A dataframe containing the raw values of features for model
         training and prediction.
 
-    target : torch.FloatTensor
-        A 1D tensor indicating whether a PSM is a decoy or not. Decoys
-        are defined as PSMs where one or more of the cross-linked
-        peptides are a decoy sequence. `1` indicates target, `0`
-        indicates decoy.
-
-    prediction : pandas.DataFrame
-        The model predictions. If no predictions have been made,
-        this is an empty dataframe.
-
-    feat_mean : pd.Series
-    feat_stdev : pd.Series
-        pandas Series containing the mean and standard deviation used for the
-        normalization of each feature.
+    predictions : pandas.DataFrame
+        A dataframe containing new scores for each PSM. New predictions
+        (such as from using different models) will be added as a new
+        column. If no predictions have been made, this is an empty
+        dataframe.
     """
-    def __init__(self, psm_files, feat_mean=None, feat_stdev=None,
-                 normalize=True, additional_metadata=None):
+    def __init__(self, psm_files: Tuple[str], additional_metadata=None):
         """Initialize a PsmDataset"""
         meta_cols = ["psmid", "numtarget", "scannr", "peptidea", "peptideb",
                      "peptidelinksitea", "peptidelinksiteb",
@@ -65,57 +116,13 @@ class PsmDataset(torch.utils.data.Dataset):
 
         psms = _parse_psms(psm_files, meta_cols)
         self.metadata = psms.loc[:, meta_cols]
-
-        # Process features
         self.features = psms.drop(columns=meta_cols)
-        self.feature_names = feat_df.columns.tolist()
-        self.prediction = pd.DataFrame()
-        self._feat_df = feat_df
-
-    def _make_torch_features(self, feat_mean=None, feat_stdev=None,
-                             normalize=True):
-        """
-        Normalize features and convert to PyTorch tensors.
-
-        Parameters
-        ----------
-        feat_mean : pd.Series
-        feat_stdev : pd.Series
-            Series containing the mean and standard deviation of each
-            feature to use for normalization. If `None`, these are
-            calculated on the parsed data. For prediction, these should
-            be the respective values from the training set.
-
-        normalize : bool
-            Should the features be standard deviation normalized? In the
-            case of a model from Percolator, this should be `False`,
-            because the raw weights will be used.
-        """
-        norm_feat = _process_features(self.features,
-                                      feat_mean=feat_mean,
-                                      feat_stdev=feat_stdev,
-                                      normalize=normalize)
-
-        self._feat_mean = norm_feat[1]
-        self._feat_stdev = norm_feat[2]
-
-        self._feat = torch.FloatTensor(norm_feat[0].values)
-        self._target = self.metadata.numtarget.values == 2
-        self._target = torch.FloatTensor(self._target.astype(int))
-
-    def __len__(self):
-        """Get the total number of sample"""
-        return len(self._target)
-
-    def __getitem__(self, idx):
-        """Generate one sample of data"""
-        return [self._target[idx], self._feat[idx, :]]
+        self.predictions = pd.DataFrame()
 
     def estimate_qvalues(self, metric: str = "XenithScore",
-                         desc: bool = True) \
-        -> "Tuple[pandas.DataFrame, pandas.DataFrame, pandas.DataFrame]":
+                         desc: bool = True) -> Tuple[pd.DataFrame]:
         """
-        Estimate q-values at the PSM, cross-link, and peptide levels.
+        Estimate q-values at the PSM, and cross-link levels.
 
         At each level, the false discovery rate (FDR) is estimated using
         target-decoy competition. For PSMs, ties from the same scan are
@@ -128,8 +135,8 @@ class PsmDataset(torch.utils.data.Dataset):
         Parameters
         ----------
         metric : str
-            The metric by which to rank PSMs. This can either be the
-            xenith prediction ("xenith_score") or any feature.
+            The metric by which to rank PSMs. This can either be a model
+            prediction or any feature. This is case-sensitive.
 
         level : str
             The level at which to estimate q-values. Can be one of
@@ -140,21 +147,29 @@ class PsmDataset(torch.utils.data.Dataset):
 
         Returns
         -------
-        tuple(pandas.DataFrame, pandas.DataFrame, pandas.DataFrame)
-            A DataFrame with the q-values at the PSM, peptide, and
-            cross-link level, respectively.
+        Tuple[pandas.DataFrame]
+            A DataFrame with the q-values at the PSM, and cross-link
+            level, respectively.
         """
-        if metric == "XenithScore":
-            res_df = self.prediction.XenithScore
+        in_pred = metric in self.predictions.columns.tolist()
+        in_feat = metric in self.features.columns.tolist()
+
+        if in_pred and in_feat:
+            res_df = self.predictions.loc[:, metric]
+            logging.warning("'%s' was found in both the predictions and "
+                            "features of the XenithDataset. Using the "
+                            "predictions.", metric)
+        elif in_pred and not in_feat:
+            res_df = self.predictions.loc[:, metric]
+        elif in_feat and not in_pred:
+            res_df = self.features.loc[:, metric]
         else:
-            metric = metric.lower()
-            res_df = self._feat_df[metric]
+            raise ValueError(f"'{metric}' was not found in the predictions or "
+                             "features of the XenithDataset.")
 
         res_df = pd.concat([self.metadata, res_df], axis=1)
 
         # Generate keys for grouping
-        pep_site1 = res_df.peptidea + "_" + res_df.peptidelinksitea.astype(str)
-        pep_site2 = res_df.peptideb + "_" + res_df.peptidelinksiteb.astype(str)
         prot_site1 = (res_df.proteina + "_"
                       + res_df.proteinlinksitea.astype(str))
         prot_site2 = (res_df.proteinb + "_"
@@ -162,9 +177,6 @@ class PsmDataset(torch.utils.data.Dataset):
 
         res_df["residue_key"] = ["--".join(sorted(x))
                                  for x in zip(prot_site1, prot_site2)]
-
-        res_df["peptide_key"] = ["--".join(sorted(x))
-                                 for x in zip(pep_site1, pep_site2)]
 
         # randomize the df, so that ties are broken randomly
         res_df = res_df.sample(frac=1).reset_index(drop=True)
@@ -175,18 +187,14 @@ class PsmDataset(torch.utils.data.Dataset):
         psm_idx = res_df.groupby(psm_cols)[metric].idxmax()
         psms = res_df.loc[psm_idx, :]
 
-        # Peptide FDR ---------------------------------------------------------
-        pep_idx = psms.groupby("peptide_key")[metric].idxmax()
-        peps = psms.loc[pep_idx, :]
-
         # Cross-Link FDR ------------------------------------------------------
-        link_idx = peps.groupby("residue_key")[metric].idxmax()
-        links = peps.loc[link_idx, :]
+        link_idx = psms.groupby("residue_key")[metric].idxmax()
+        links = psms.loc[link_idx, :]
         links = links.loc[~links.residue_key.str.contains(";")]
 
         # Estimate q-values ----------------------------------------------------
         out_list = []
-        for dat in (psms, peps, links):
+        for dat in (psms, links):
             dat["q-values"] = xenith.fdr.qvalues(dat.numtarget.values,
                                                  dat[metric].values,
                                                  desc=desc)
@@ -196,7 +204,36 @@ class PsmDataset(torch.utils.data.Dataset):
 
         return out_list
 
+
 # Functions -------------------------------------------------------------------
+def load_psms(psm_files: Tuple[str], additional_metadata=None):
+    """
+    Load a collection of peptide-spectrum matches (PSMs).
+
+    Reads a collection of PSMs from a file in the xenith tab-delimited
+    format. By default, the required fields are considered metadata
+    whereas all other fields are considered features.
+
+    Parameters
+    ----------
+    psm_files : str or tuple of str
+        The files from which to load a set of PSMs. These should be in
+        the xenith tab-delimited format.
+
+    additional_metadata : tuple of str
+        Additional columns to be considered metadata. The columns
+        specified here will not be included as features.
+
+    Returns
+    -------
+    xenith.dataset.XenithDataset
+        A XenithDataset object containing the PSMs.
+    """
+    return XenithDataset(psm_files=psm_files,
+                         additional_metadata=additional_metadata)
+
+
+# Utility Functions -----------------------------------------------------------
 def _format_output(out_df, metric):
     """
     Format the output dataframe from estimate_qvalues()
