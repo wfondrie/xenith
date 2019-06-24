@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import torch
 
-import xenith
+from xenith import dataset
 from xenith import torchmods
 
 class XenithModel():
@@ -103,9 +103,9 @@ class XenithModel():
 
         torch.save(model_spec, file_name)
 
-    def predict(self, xenith_dataset: xenith.dataset.XenithDataset,
+    def predict(self, xenith_dataset: dataset.XenithDataset,
                 name: str = "XenithDataset", gpu: bool = False) \
-        -> xenith.dataset.XenithDataset:
+        -> dataset.XenithDataset:
         """
         Use a trained XenithModel to evaluate a new dataset.
 
@@ -141,10 +141,10 @@ class XenithModel():
         device = _set_device(gpu)
         self.model.eval().to(device)
 
-        psms = xenith.dataset._PsmDataset(xenith_dataset,
-                                          feat_mean=self.feat_mean,
-                                          feat_stdev=self.feat_stdev,
-                                          normalize=normalize)
+        psms = dataset._PsmDataset(xenith_dataset,
+                                   feat_mean=self.feat_mean,
+                                   feat_stdev=self.feat_stdev,
+                                   normalize=normalize)
 
         pred = self.model(psms.features.to(device))
         pred = pred.detach().cpu().numpy().flatten()
@@ -153,8 +153,8 @@ class XenithModel():
 
         return out_dataset
 
-    def fit(self, training_set: xenith.dataset.XenithDataset,
-            validation_set: xenith.dataset.XenithDataset,
+    def fit(self, training_set: dataset.XenithDataset,
+            validation_set: dataset.XenithDataset,
             max_epochs: int = 100, batch_size: int = 128,
             learn_rate: float = 0.001, weight_decay: float = 0.001,
             early_stop: int = 5, gpu: bool = False) \
@@ -205,17 +205,17 @@ class XenithModel():
         """
         device = _set_device(gpu)
 
-        train_set = xenith.dataset._PsmDataset(training_set,
-                                               feat_mean=None,
-                                               feat_stdev=None,
-                                               normalize=True)
+        train_set = dataset._PsmDataset(training_set,
+                                        feat_mean=None,
+                                        feat_stdev=None,
+                                        normalize=True)
 
         self.feat_mean = train_set.feat_mean
         self.feat_stdev = train_set.feat_stdev
-        val_set = xenith.dataset._PsmDataset(validation_set,
-                                             feat_mean=train_set.feat_mean,
-                                             feat_stdev=train_set.feat_stdev,
-                                             normalize=True)
+        val_set = dataset._PsmDataset(validation_set,
+                                      feat_mean=train_set.feat_mean,
+                                      feat_stdev=train_set.feat_stdev,
+                                      normalize=True)
 
         sig_loss = torchmods.SigmoidLoss()
 
@@ -292,7 +292,7 @@ class XenithModel():
 
 
 # Functions -------------------------------------------------------------------
-def from_percolator(weights_file: str) -> xenith.models.XenithModel:
+def from_percolator(weights_file: str) -> XenithModel:
     """
     Load a pretrained model from Percolator results.
 
@@ -332,7 +332,7 @@ def from_percolator(weights_file: str) -> xenith.models.XenithModel:
                        source="percolator", pretrained=True)
 
 
-def load_model(xenith_model_file: str) -> xenith.models.XenithModel:
+def load_model(xenith_model_file: str) -> XenithModel:
     """
     Load a pretrained model from xenith.
 
@@ -370,7 +370,7 @@ def load_model(xenith_model_file: str) -> xenith.models.XenithModel:
 
 
 def new_model(num_features: int, hidden_dims: Tuple[int] = (8, 8, 8)) \
-    -> xenith.models.XenithModel:
+    -> XenithModel:
     """
     Create a new model.
 
