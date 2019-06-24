@@ -20,18 +20,6 @@ class PsmDataset(torch.utils.data.Dataset):
         The files from which to load a set of PSMs. These should be in
         the xenith tab-delimited format.
 
-    feat_mean : pd.DataFrame
-    feat_stdev : pd.DataFrame
-        Wide dataframes containing the mean and standard deviation of
-        each feature to use for normalization. If `None`, these are
-        calculated on the parsed data. For prediction, these should
-        be the respective values from the training set.
-
-    normalize : bool
-        Should the features be standard deviation normalized? In the
-        case of a model from Percolator, this should be `False`, because
-        the raw weights will be used.
-
     addtional_metadata : tuple of str
         Additional columns to be considered metadata. This can be useful
         for removing specific features.
@@ -79,31 +67,53 @@ class PsmDataset(torch.utils.data.Dataset):
         self.metadata = psms.loc[:, meta_cols]
 
         # Process features
-        feat_df = psms.drop(columns=meta_cols)
-        norm_feat = _process_features(feat_df, feat_mean, feat_stdev,
-                                      normalize)
-
+        self.features = psms.drop(columns=meta_cols)
         self.feature_names = feat_df.columns.tolist()
-        self.feat_mean = norm_feat[1]
-        self.feat_stdev = norm_feat[2]
-
-        self.features = torch.FloatTensor(norm_feat[0].values)
-        self.target = self.metadata.numtarget.values == 2
-        self.target = torch.FloatTensor(self.target.astype(int))
         self.prediction = pd.DataFrame()
         self._feat_df = feat_df
 
+    def _make_torch_features(self, feat_mean=None, feat_stdev=None,
+                             normalize=True):
+        """
+        Normalize features and convert to PyTorch tensors.
+
+        Parameters
+        ----------
+        feat_mean : pd.Series
+        feat_stdev : pd.Series
+            Series containing the mean and standard deviation of each
+            feature to use for normalization. If `None`, these are
+            calculated on the parsed data. For prediction, these should
+            be the respective values from the training set.
+
+        normalize : bool
+            Should the features be standard deviation normalized? In the
+            case of a model from Percolator, this should be `False`,
+            because the raw weights will be used.
+        """
+        norm_feat = _process_features(self.features,
+                                      feat_mean=feat_mean,
+                                      feat_stdev=feat_stdev,
+                                      normalize=normalize)
+
+        self._feat_mean = norm_feat[1]
+        self._feat_stdev = norm_feat[2]
+
+        self._feat = torch.FloatTensor(norm_feat[0].values)
+        self._target = self.metadata.numtarget.values == 2
+        self._target = torch.FloatTensor(self._target.astype(int))
+
     def __len__(self):
         """Get the total number of sample"""
-        return len(self.target)
+        return len(self._target)
 
     def __getitem__(self, idx):
         """Generate one sample of data"""
-        return [self.target[idx], self.features[idx, :]]
+        return [self._target[idx], self._feat[idx, :]]
 
     def estimate_qvalues(self, metric: str = "XenithScore",
                          desc: bool = True) \
-        -> "Tuple(pandas.DataFrame, pandas.DataFrame, pandas.DataFrame)":
+        -> "Tuple[pandas.DataFrame, pandas.DataFrame, pandas.DataFrame]":
         """
         Estimate q-values at the PSM, cross-link, and peptide levels.
 
