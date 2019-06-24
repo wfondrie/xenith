@@ -163,3 +163,37 @@ def test_dataset_init(psm_txt):
 
     with pytest.raises(RuntimeError):
         xenith.load_psms(psm_txt[0], additional_metadata="x")
+
+
+def test_torch_dataset_init(psm_txt):
+    """
+    Test that a _PsmDataset is generated correctly from a
+    XenithDataset.
+    """
+    dset = xenith.load_psms(psm_txt[0])
+    psmdset1 = xenith.dataset._PsmDataset(dset, None, None, True)
+    psmdset2 = xenith.dataset._PsmDataset(dset, None, None, False)
+
+    assert tuple(psmdset1.features.shape) == dset.features.shape
+    assert not torch.allclose(psmdset1.features, psmdset2.features)
+    assert torch.all(torch.eq(psmdset1.target, psmdset2.target))
+
+    # check target
+    target = [x.startswith("T") for x in dset.metadata.psmid]
+    target = torch.FloatTensor(target)
+    assert torch.all(torch.eq(psmdset1.target, target))
+
+def test_torch_dataset_methods(psm_txt):
+    """
+    Test that the methods needed for PyTorch work as expected for a
+    _PsmDataset.
+    """
+    dset = xenith.load_psms(psm_txt[0])
+    psmdset = xenith.dataset._PsmDataset(dset, None, None, True)
+
+    assert len(psmdset) == 21
+
+    item = (psmdset.target[1], psmdset.features[1, :])
+    assert torch.all(item[0] == psmdset[1][0])
+    assert torch.all(item[1] == psmdset[1][1])
+
