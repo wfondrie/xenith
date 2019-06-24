@@ -112,9 +112,13 @@ class XenithDataset():
                      "proteina", "proteinb", "fileidx"]
 
         if additional_metadata is not None:
+            if not isinstance(additional_metadata, list):
+                additional_metadata = [str(additional_metadata)]
+
+            additional_metadata = [m.lower() for m in additional_metadata]
             meta_cols = meta_cols + additional_metadata
 
-        psms = _parse_psms(psm_files, meta_cols)
+        psms = _parse_psms(psm_files, meta_cols, additional_metadata)
         self.metadata = psms.loc[:, meta_cols]
         self.features = psms.drop(columns=meta_cols)
         self.predictions = pd.DataFrame()
@@ -206,7 +210,8 @@ class XenithDataset():
 
 
 # Functions -------------------------------------------------------------------
-def load_psms(psm_files: Tuple[str], additional_metadata=None):
+def load_psms(psm_files: Tuple[str], additional_metadata: Tuple[str] = None)\
+    -> XenithDataset:
     """
     Load a collection of peptide-spectrum matches (PSMs).
 
@@ -327,7 +332,7 @@ def _process_features(feat_df, feat_mean, feat_stdev, normalize):
     return (feat_df, feat_mean, feat_stdev)
 
 
-def _parse_psms(psm_files, meta_cols):
+def _parse_psms(psm_files, meta_cols, more_meta_cols):
     """
     Parse the PSM list and throw appropriate errors.
 
@@ -338,6 +343,9 @@ def _parse_psms(psm_files, meta_cols):
 
     meta_cols : list
         A list of the expected metadata columns.
+
+    more_meta_cols : list
+        A list of additional metadata columns.
 
     Returns
     -------
@@ -358,9 +366,14 @@ def _parse_psms(psm_files, meta_cols):
         if not idx:
             feat_set = set(psms.columns)
 
+        if (more_meta_cols is not None and
+            not set(more_meta_cols) <= set(psms.columns)):
+            raise RuntimeError(f"{psm_file} does not contain the specified "
+                               "additional metadata columns.")
+
         if not set(meta_cols) <= set(psms.columns):
-            raise RuntimeError(f"{psm_file} does not contain the required "
-                               "columns for xenith. See README for details.")
+            raise RuntimeError(f"{psm_file} either does not contain the required "
+                               "columns for xenith.")
 
         if not feat_set == set(psms.columns):
             raise RuntimeError(f"Features in {psm_file} do not match the"

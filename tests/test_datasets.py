@@ -44,18 +44,18 @@ def psm_txt(tmpdir):
 def test_parsing(psm_txt):
     """Test that parsing works as expected"""
     # Try reading file
-    xenith.dataset._parse_psms(psm_txt[0], ["scannr"])
+    xenith.dataset._parse_psms(psm_txt[0], ["scannr"], None)
 
     # Try reading multiple files
-    xenith.dataset._parse_psms(psm_txt[0:2], ["scannr"])
+    xenith.dataset._parse_psms(psm_txt[0:2], ["scannr"], None)
 
     # Try reading multiple, but columns don't match
     with pytest.raises(RuntimeError):
-        xenith.dataset._parse_psms(psm_txt, ["scannr"])
+        xenith.dataset._parse_psms(psm_txt, ["scannr"], None)
 
     # Try reading a file, but it doesn't have a required column
     with pytest.raises(RuntimeError):
-        xenith.dataset._parse_psms(psm_txt[0], ["blah"])
+        xenith.dataset._parse_psms(psm_txt[0], ["blah"], None)
 
 
 @pytest.fixture
@@ -140,3 +140,26 @@ def test_feature_mismatch(toy_features):
                                          feat_mean=fmean,
                                          feat_stdev=fstdev,
                                          normalize=True)
+
+
+def test_dataset_init(psm_txt):
+    """Test that a XenithDataset is initialized properly"""
+    dset1 = xenith.load_psms(psm_txt[0])
+    dset2 = xenith.dataset.XenithDataset(psm_txt[0])
+
+    assert dset1.metadata.equals(dset2.metadata)
+    assert dset1.features.equals(dset2.features)
+    assert dset1.predictions.equals(dset2.predictions)
+    assert dset1.metadata.shape == (21, 12) # Size of the test dataset
+    assert dset1.features.shape == (21, 24)
+    assert dset1.predictions.shape == (0, 0)
+
+    # Also test adding a metadata column
+    dset1 = xenith.load_psms(psm_txt[0], additional_metadata=["eVal", "eVala"])
+    dset2 = xenith.load_psms(psm_txt[0], additional_metadata="eval")
+
+    assert dset1.metadata.shape == (21, 14)
+    assert dset2.metadata.shape == (21, 13)
+
+    with pytest.raises(RuntimeError):
+        xenith.load_psms(psm_txt[0], additional_metadata="x")
