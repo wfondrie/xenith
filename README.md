@@ -1,10 +1,10 @@
+
+<img src="xenith_logo.svg" width=200>  
+---
 [![Build Status](https://travis-ci.org/wfondrie/xenith.svg?branch=master)](https://travis-ci.org/wfondrie/xenith)
 [![codecov](https://codecov.io/gh/wfondrie/xenith/branch/master/graph/badge.svg)](https://codecov.io/gh/wfondrie/xenith)
-[![Built with Spacemacs](https://cdn.rawgit.com/syl20bnr/spacemacs/442d025779da2f62fc86c2082703697714db6514/assets/spacemacs-badge.svg)](http://spacemacs.org)
+[![Built with Spacemacs](https://cdn.rawgit.com/syl20bnr/spacemacs/442d025779da2f62fc86c2082703697714db6514/assets/spacemacs-badge.svg)](http://spacemacs.org)  
 
-
-![xenith_logo](xenith_logo.svg){width=200px}
----
 Enhanced cross-linked peptide detection using pretrained models.  
 
 **xenith** is a python package that uses pretrained models to re-score search
