@@ -123,6 +123,10 @@ class XenithDataset():
         self.features = psms.drop(columns=meta_cols)
         self.predictions = pd.DataFrame()
 
+    def __len__(self):
+        """Return the number of PSMs in the XenithDataset"""
+        return self.metadata.shape[0]
+
     def estimate_qvalues(self, metric: str = "XenithScore",
                          desc: bool = True) -> Tuple[pd.DataFrame]:
         """

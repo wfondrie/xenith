@@ -183,6 +183,7 @@ def test_torch_dataset_init(psm_txt):
     target = torch.FloatTensor(target)
     assert torch.all(torch.eq(psmdset1.target, target))
 
+
 def test_torch_dataset_methods(psm_txt):
     """
     Test that the methods needed for PyTorch work as expected for a
@@ -197,3 +198,14 @@ def test_torch_dataset_methods(psm_txt):
     assert torch.all(item[0] == psmdset[1][0])
     assert torch.all(item[1] == psmdset[1][1])
 
+
+def test_qvalues(psm_txt):
+    """
+    Test that the XenithDataset.estimate_qvalues() method is working at
+    both the PSM and cross-link level.
+    """
+    dset = xenith.load_psms(psm_txt[0:2])
+    dset.predictions["XenithScore"] = np.random.normal(size=len(dset))
+
+    dset.estimate_qvalues()
+    dset.estimate_qvalues("ppscorediff")
