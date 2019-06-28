@@ -230,3 +230,11 @@ def test_qvalues(psm_txt):
 
     with pytest.raises(ValueError):
         dset.estimate_qvalues("blah")
+
+def test_format_output(psm_txt):
+    """This one is for 100% coverage"""
+    dset = xenith.load_psms(psm_txt[0:2])
+    dat = dset.metadata
+    dat["Score"] = dset.features.score
+
+    xenith.dataset._format_output(dset.metadata, "Score")
