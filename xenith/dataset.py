@@ -203,12 +203,15 @@ class XenithDataset():
             A DataFrame with the q-values at the PSM, and cross-link
             level, respectively.
         """
-        if metric not in self.metrics.columns:
+        if metric not in self.metrics.columns.tolist():
             raise ValueError(f"{metric} not found in the metrics of the "
                              "XenithDataset.")
 
         res_df = self.metrics.loc[:, metric]
         res_df = pd.concat([self.metadata, res_df], axis=1)
+
+        if not desc:
+            res_df[metric] = -res_df[metric]
 
         # Generate keys for grouping
         prot_site1 = (res_df.proteina + "_"
@@ -236,6 +239,9 @@ class XenithDataset():
         # Estimate q-values ----------------------------------------------------
         out_list = []
         for dat in (psms, links):
+            if not desc:
+                dat[metric] = -dat[metric]
+
             dat["q-values"] = xenith.fdr.qvalues(dat.numtarget.values,
                                                  dat[metric].values,
                                                  desc=desc)

@@ -216,3 +216,4 @@ def test_qvalues(psm_txt):
     dset.add_metric("XenithScore", np.random.normal(size=len(dset)))
 
     qvals = dset.estimate_qvalues()
+    dset.estimate_qvalues(desc=False)
