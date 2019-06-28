@@ -84,9 +84,9 @@ def test_sigmoid_loss():
     """Test that the sigmoid loss function works correctly"""
     sig_loss = mods.SigmoidLoss()
 
-    high = torch.FloatTensor([1000])
-    low = torch.FloatTensor([-1000])
-    mid = torch.FloatTensor([0])
+    high = torch.tensor([1000])
+    low = torch.tensor([-1000])
+    mid = torch.tensor([0])
 
     target_high = sig_loss(high, torch.tensor([1]))
     target_low = sig_loss(low, torch.tensor([1]))
@@ -107,13 +107,12 @@ def test_sigmoid_loss():
     assert torch.allclose(decoy_low, correct, atol=2e-7)
     assert torch.allclose(decoy_mid, midway)
 
-
 def test_hybrid_loss():
     hybrid_loss = mods.HybridLoss()
 
-    high = torch.FloatTensor([1000])
-    low = torch.FloatTensor([-1000])
-    mid = torch.FloatTensor([0])
+    high = torch.tensor([1000])
+    low = torch.tensor([-1000])
+    mid = torch.tensor([0])
 
     target_high = hybrid_loss(high, torch.tensor([1]))
     target_low = hybrid_loss(low, torch.tensor([1]))
