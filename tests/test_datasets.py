@@ -149,10 +149,10 @@ def test_dataset_init(psm_txt):
 
     assert dset1.metadata.equals(dset2.metadata)
     assert dset1.features.equals(dset2.features)
-    assert dset1.predictions.equals(dset2.predictions)
+    assert dset1.metrics.equals(dset2.metrics)
     assert dset1.metadata.shape == (21, 12) # Size of the test dataset
     assert dset1.features.shape == (21, 24)
-    assert dset1.predictions.shape == (0, 0)
+    assert dset1.metrics.shape == (0, 0)
 
     # Also test adding a metadata column
     dset1 = xenith.load_psms(psm_txt[0], additional_metadata=["eVal", "eVala"])
@@ -198,6 +198,14 @@ def test_torch_dataset_methods(psm_txt):
     assert torch.all(item[0] == psmdset[1][0])
     assert torch.all(item[1] == psmdset[1][1])
 
+def test_metrics(psm_txt):
+    """Test that you can add and get metrics."""
+    dset = xenith.load_psms(psm_txt[0:2])
+    dset.add_metric("xcorr", dset.features.score)
+    metrics = dset.get_metrics()
+
+    assert len(metrics) == len(dset.metadata)
+    assert np.array_equal(metrics.xcorr.values, dset.features.score.values)
 
 def test_qvalues(psm_txt):
     """
@@ -205,7 +213,6 @@ def test_qvalues(psm_txt):
     both the PSM and cross-link level.
     """
     dset = xenith.load_psms(psm_txt[0:2])
-    dset.predictions["XenithScore"] = np.random.normal(size=len(dset))
+    dset.add_metric("XenithScore", np.random.normal(size=len(dset)))
 
-    dset.estimate_qvalues()
-    dset.estimate_qvalues("ppscorediff")
+    qvals = dset.estimate_qvalues()

@@ -121,11 +121,55 @@ class XenithDataset():
         psms = _parse_psms(psm_files, meta_cols, additional_metadata)
         self.metadata = psms.loc[:, meta_cols]
         self.features = psms.drop(columns=meta_cols)
-        self.predictions = pd.DataFrame()
+        self.metrics = pd.DataFrame()
 
     def __len__(self):
         """Return the number of PSMs in the XenithDataset"""
         return self.metadata.shape[0]
+
+    def add_metric(self, name: str, values: np.ndarray) -> None:
+        """
+        Add a new metric to the XenithDataset.
+
+        Metrics are measures of PSM confidence and can be used for
+        estimating q-values. Predictions made with a XenithModel
+        are automatically added as a metric.
+
+        Parameters
+        ----------
+        name : str
+            Name of the new metric. If the name matches an existing
+            metric, it will be overwritten.
+
+        values : np.ndarray
+            A 1D numpy array specifying the values of the metric. This
+            must be the same length as the number of PSMs in the dataset
+            (which can be found with `len()`)
+        """
+        if len(values.shape) > 1:
+            raise ValueError("'values' must be 1-dimensional.")
+
+        if values.shape[0] != len(self):
+            raise ValueError("'values' must be the same length as the "
+                             "XenithDataset.")
+
+        self.metrics[name] = values
+
+    def get_metrics(self) -> pd.DataFrame:
+        """
+        Retrieve the metrics of a XenithDataset.
+
+        Returns
+        -------
+        pandas.DataFrame
+            A dataframe containing the metrics and associated metadata.
+        """
+        if not len(self.metrics):
+            raise RuntimeError("No metrics are present to retrieve.")
+
+        out_df = pd.concat([self.metadata, self.metrics], axis=1)
+
+        return _format_output(out_df, self.metrics.columns.tolist())
 
     def estimate_qvalues(self, metric: str = "XenithScore",
                          desc: bool = True) -> Tuple[pd.DataFrame]:
@@ -159,22 +203,11 @@ class XenithDataset():
             A DataFrame with the q-values at the PSM, and cross-link
             level, respectively.
         """
-        in_pred = metric in self.predictions.columns.tolist()
-        in_feat = metric in self.features.columns.tolist()
+        if metric not in self.metrics.columns:
+            raise ValueError(f"{metric} not found in the metrics of the "
+                             "XenithDataset.")
 
-        if in_pred and in_feat:
-            res_df = self.predictions.loc[:, metric]
-            logging.warning("'%s' was found in both the predictions and "
-                            "features of the XenithDataset. Using the "
-                            "predictions.", metric)
-        elif in_pred and not in_feat:
-            res_df = self.predictions.loc[:, metric]
-        elif in_feat and not in_pred:
-            res_df = self.features.loc[:, metric]
-        else:
-            raise ValueError(f"'{metric}' was not found in the predictions or "
-                             "features of the XenithDataset.")
-
+        res_df = self.metrics.loc[:, metric]
         res_df = pd.concat([self.metadata, res_df], axis=1)
 
         # Generate keys for grouping
@@ -208,7 +241,7 @@ class XenithDataset():
                                                  desc=desc)
             dat.sort_values(metric, ascending=(not desc), inplace=True)
             dat.reset_index(drop=True, inplace=True)
-            out_list.append(_format_output(dat, metric))
+            out_list.append(_format_output(dat, [metric, "q-values"]))
 
         return out_list
 
@@ -245,20 +278,26 @@ def load_psms(psm_files: Tuple[str], additional_metadata: Tuple[str] = None)\
 # Utility Functions -----------------------------------------------------------
 def _format_output(out_df, metric):
     """
-    Format the output dataframe from estimate_qvalues()
+    Format the output dataframes.
 
     Parameters
     ----------
     out_df : pandas.DataFrame
         The dataframe with q-values and the other output columns.
+
+    metric : list of str
+        The metric columns to add.
     """
-    order = ["fileidx", "psmid", "numtarget", "scannr", metric,
-             "q-values", "peptidea", "peptideb", "peptidelinksitea",
-             "peptidelinksiteb", "proteinlinksitea", "proteinlinksiteb",
-             "proteina", "proteinb"]
+    front_meta = ["fileidx", "psmid", "numtarget", "scannr"]
+    back_meta = ["peptidea", "peptideb", "peptidelinksitea",
+                 "peptidelinksiteb", "proteinlinksitea", "proteinlinksiteb",
+                 "proteina", "proteinb"]
 
+    if isinstance(metric, str):
+        metric = [metric]
+
+    order = front_meta + metric + back_meta
     out_df = out_df.loc[:, order]
-
     out_df = out_df.rename(columns={"fileidx": "FileIdx",
                                     "psmid": "PsmId",
                                     "numtarget": "NumTarget",
