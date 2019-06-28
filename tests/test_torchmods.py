@@ -60,6 +60,9 @@ def test_mlp_iscorrect():
     assert mlp.linear_2.bias.size() == torch.Size([1])
     assert mlp.linear_3.bias.size() == torch.Size([1])
 
+    # I'll eventually manually calculate a result to compare against
+    # but for now, just knowing that it doesn't error will work.
+    mlp(torch.FloatTensor([[5] * 5]))
 
 def test_lm_iscorrect():
     """Test that you get actually linear model."""
