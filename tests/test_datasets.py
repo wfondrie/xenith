@@ -201,11 +201,21 @@ def test_torch_dataset_methods(psm_txt):
 def test_metrics(psm_txt):
     """Test that you can add and get metrics."""
     dset = xenith.load_psms(psm_txt[0:2])
+
+    with pytest.raises(RuntimeError):
+        dset.get_metrics()
+
     dset.add_metric("xcorr", dset.features.score)
     metrics = dset.get_metrics()
 
     assert len(metrics) == len(dset.metadata)
     assert np.array_equal(metrics.xcorr.values, dset.features.score.values)
+
+    with pytest.raises(ValueError):
+        dset.add_metric("blah", np.ones(shape=(10, 2)))
+
+    with pytest.raises(ValueError):
+        dset.add_metric("blah", np.ones(shape=50))
 
 def test_qvalues(psm_txt):
     """
@@ -217,3 +227,6 @@ def test_qvalues(psm_txt):
 
     qvals = dset.estimate_qvalues()
     dset.estimate_qvalues(desc=False)
+
+    with pytest.raises(ValueError):
+        dset.estimate_qvalues("blah")

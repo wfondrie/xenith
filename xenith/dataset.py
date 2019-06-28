@@ -190,10 +190,6 @@ class XenithDataset():
             The metric by which to rank PSMs. This can either be a model
             prediction or any feature. This is case-sensitive.
 
-        level : str
-            The level at which to estimate q-values. Can be one of
-            'psm', 'peptide', or 'cross-link'.
-
         desc : bool
             Does a higher value of metric indicate a better PSM?
 
@@ -204,6 +200,8 @@ class XenithDataset():
             level, respectively.
         """
         if metric not in self.metrics.columns.tolist():
+            print(metric)
+            print(self.metrics.columns.tolist())
             raise ValueError(f"{metric} not found in the metrics of the "
                              "XenithDataset.")
 
