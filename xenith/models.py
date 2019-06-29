@@ -149,7 +149,7 @@ class XenithModel():
         pred = self.model(psms.features.to(device))
         pred = pred.detach().cpu().numpy().flatten()
         out_dataset = copy.deepcopy(xenith_dataset)
-        out_dataset.prediction[name] = pred
+        out_dataset.add_metric(name, pred)
 
         return out_dataset
 
