@@ -50,3 +50,39 @@ def test_new_model():
 
     mod = xenith.new_model(1, hidden_dims=None)
     assert type(mod.model).__name__ == "Linear"
+
+
+def test_load_model(tmpdir):
+    """
+    Test the load_model() function.
+
+    Verify that the loaded model is matches the original. This also
+    tests the XenithModel.save() method.
+    """
+    path = os.path.join(tmpdir, "model.pt")
+    orig = xenith.new_model(5)
+    orig.save(path)
+
+    loaded = xenith.load_model(path)
+
+    assert loaded.source == orig.source
+    assert loaded.num_features == orig.num_features
+    assert loaded.pretrained == orig.pretrained
+    assert loaded.feat_mean == orig.feat_mean # Both are None.
+    assert loaded.feat_stdev == orig.feat_stdev # Both are None.
+    assert np.allclose(loaded.hidden_dims, orig.hidden_dims)
+
+    for params in zip(loaded.model.parameters(), orig.model.parameters()):
+        assert torch.allclose(params[0], params[1])
+
+
+#def test_from_percolator():
+#    """
+#    Test the from_percolator() function.
+#
+#    Verify that a model is correctly loaded from the Percolator weights
+#    output.
+#    """
+#    path = os.path.join("tests", "data", "weights.txt")
+#    loaded = xenith.from_percolator(path)
+
