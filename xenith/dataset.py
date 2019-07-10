@@ -127,6 +127,10 @@ class XenithDataset():
         """Return the number of PSMs in the XenithDataset"""
         return self.metadata.shape[0]
 
+    def num_features(self):
+        """Return the number of features in the dataset."""
+        return self.features.shape[1]
+
     def add_metric(self, name: str, values: np.ndarray) -> None:
         """
         Add a new metric to the XenithDataset.

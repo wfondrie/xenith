@@ -78,7 +78,7 @@ class XenithModel():
         self.feat_stdev = feat_stdev
         self.hidden_dims = hidden_dims
 
-    def count_parameters(self):
+    def count_parameters(self) -> int:
         """Return the number of trainable parameters in the model."""
         mod = self.model
         return sum(p.numel() for p in mod.parameters() if p.requires_grad)
@@ -325,9 +325,10 @@ def from_percolator(weights_file: str) -> XenithModel:
     model.linear.bias.data = bias
 
     # Dummy pd.Series to verify that the features are correct.
-    dummy = pd.Series([0]*len(weights), index=weight_df.columns.tolist())
+    features = weight_df.drop(columns="m0").columns.tolist()
+    dummy = pd.Series([0]*weights.shape[1], index=features)
 
-    return XenithModel(model=model, num_features=len(weights),
+    return XenithModel(model=model, num_features=weights.shape[1],
                        feat_mean=dummy, feat_stdev=dummy,
                        source="percolator", pretrained=True)
 
