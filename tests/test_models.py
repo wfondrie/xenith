@@ -4,6 +4,7 @@ Test the constructors and use of the XenithModel class.
 These are found in 'models.py'
 """
 import os
+import copy
 import logging
 import pytest
 import torch
@@ -16,12 +17,12 @@ import xenith.models as mods
 @pytest.fixture
 def perc_weights():
     """A Percolator weights file"""
-    return os.path.join("data", "weights.txt")
+    return os.path.join("tests", "data", "weights.txt")
 
 @pytest.fixture
 def input_tsv():
     """A small collection of PSMs in the xenith TSV format."""
-    return os.path.join("data", "test.tsv")
+    return os.path.join("tests", "data", "test.tsv")
 
 def test_device(caplog):
     """
@@ -76,14 +77,14 @@ def test_load_model(tmpdir):
         assert torch.allclose(params[0], params[1])
 
 
-def test_from_percolator():
+def test_from_percolator(perc_weights):
     """
     Test the from_percolator() function.
 
     Verify that a model is correctly loaded from the Percolator weights
     output.
     """
-    path = os.path.join("tests", "data", "weights.txt")
+    path = os.path.join(perc_weights)
     loaded = xenith.from_percolator(path)
 
     # Correct answers for feat_mean and feat_stdev
@@ -120,20 +121,33 @@ def test_count_parameters():
     assert linear_params == 4 # 4 feat + 1 bias
     assert mlp_params == 11 # (4x2 weights + 2 bias) + 1 bias
 
-def test_fit_rough():
+def test_fit_rough(input_tsv):
     """
     Test that the XenithModel.fit() method does not error.
 
     Verify that the fit method works, but don't check for correctness.
     These tests will also take the longest.
     """
-    dataset = xenith.load_psms(os.path.join("tests", "data", "test.tsv"))
+    dataset = xenith.load_psms(input_tsv)
 
     linear_model = xenith.new_model(dataset.num_features(), None)
     mlp_model = xenith.new_model(dataset.num_features(), [2])
 
     _ = linear_model.fit(dataset, dataset, batch_size=1, max_epochs=10)
     _ = mlp_model.fit(dataset, dataset, batch_size=1, max_epochs=10)
+
+    # force early stop
+    silly_val = copy.deepcopy(dataset)
+    silly_val.features["eval"] = np.random.normal(size=len(silly_val))
+    silly_val.features["evala"] = np.random.normal(size=len(silly_val))
+    silly_val.features["evalb"] = np.random.normal(size=len(silly_val))
+    silly_val.features["score"] = np.random.normal(size=len(silly_val))
+    silly_val.features["ppscorediff"] = np.random.normal(size=len(silly_val))
+    silly_val.features["ionmatch"] = np.random.normal(size=len(silly_val))
+    silly_val.features["intraprotein"] = 1
+
+    loss_df = linear_model.fit(dataset, silly_val, batch_size=1, early_stop=1)
+    assert len(loss_df) < 100
 
 
 def test_predict():
