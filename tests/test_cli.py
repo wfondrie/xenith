@@ -47,10 +47,10 @@ def test_help():
     The content of the help message is not checked, to make updating
     it a little easier. This may change in the future.
     """
-    subprocess.run(["xenith"])
-    subprocess.run(["xenith", "-h"])
-    subprocess.run(["xenith", "predict", "-h"])
-    subprocess.run(["xenith", "kojak", "-h"])
+    subprocess.run(["xenith"], check=True)
+    subprocess.run(["xenith", "-h"], check=True)
+    subprocess.run(["xenith", "predict", "-h"], check=True)
+    subprocess.run(["xenith", "kojak", "-h"], check=True)
 
 
 def test_predict(tmpdir, mods):
@@ -66,8 +66,8 @@ def test_predict(tmpdir, mods):
     base_cmd = ["xenith", "predict", mods["data_path"],
                 "-r", fileroot, "-o", tmpdir,  "-m"]
 
-    subprocess.run(base_cmd + [mods["perc"]])
-    subprocess.run(base_cmd + [mods["xenith"]])
+    subprocess.run(base_cmd + [mods["perc"]], check=True)
+    subprocess.run(base_cmd + [mods["xenith"]], check=True)
 
     # Verify
     psms, xlinks = [pd.read_csv(f, sep="\t") for f in out_files]
