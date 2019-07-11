@@ -4,6 +4,7 @@ Defines the command line functionality of Xenith
 import os
 import sys
 import logging
+import numpy as np
 import pandas as pd
 
 import xenith
@@ -18,9 +19,6 @@ def main():
         config.parser.print_help(sys.stderr)
         quit()
 
-    print(config._namespace)
-    print(config.verbosity)
-
     # Setup logging
     verbosity_dict = {0: logging.ERROR,
                       1: logging.WARNING,
@@ -32,6 +30,7 @@ def main():
                         style="{", level=verbosity_dict[config.verbosity])
 
     if config.command == "predict":
+        np.random.seed(config.seed)
         dataset = xenith.load_psms(config.psm_files)
 
         try:
@@ -45,6 +44,15 @@ def main():
         out_base = os.path.join(config.output_dir, config.fileroot)
         psms.to_csv(out_base + ".psms.txt", sep="\t", index=False)
         xlinks.to_csv(out_base + ".xlinks.txt", sep="\t", index=False)
+
+    elif config.command == "kojak":
+        xenith.convert_kojak(kojak=config.kojak,
+                             perc_inter=config.perc_inter,
+                             perc_intra=config.perc_intra,
+                             version=config.version,
+                             out_file=config.output_file,
+                             max_charge=config.max_charge,
+                             to_pin=config.to_pin)
 
 
 if __name__ == "__main__":

@@ -98,6 +98,13 @@ class Config():
                                    " prefix to all output file names. This"
                                    " is the 'xenith' by default."))
 
+        predict.add_argument("-s", "--seed",
+                             type=int,
+                             default=1,
+                             help=("The random seed. Because tied PSMs are "
+                                   "broken randomly, this ensure "
+                                   "reproducibility"))
+
         # Kojak conversion
         kojak_help = ("Convert Kojak search results to the xenith tab-"
                       "delimited format.")
@@ -113,12 +120,12 @@ class Config():
                            help=("The path to the main kojak result file"
                                  " (*.kojak.txt)."))
 
-        kojak.add_argument("perc-intra",
+        kojak.add_argument("perc_intra",
                            type=str,
                            help=("The path to the intraprotein Percolator "
                                  "input file from Kojak (*.perc.intra.txt)."))
 
-        kojak.add_argument("perc-inter",
+        kojak.add_argument("perc_inter",
                            type=str,
                            help=("The path to the interprotein Percolator "
                                  "input file from Kojak (*.perc.inter.txt)."))
@@ -127,6 +134,12 @@ class Config():
                            type=str,
                            default="kojak.xenith.txt",
                            help=("The output file name and path."))
+
+        kojak.add_argument("-r", "--version",
+                           type=str,
+                           choices=["2.0-dev"],
+                           default="2.0-dev",
+                           help=("The version of Kojak that was used."))
 
         kojak.add_argument("-c", "--max-charge",
                            type=int,
