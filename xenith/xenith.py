@@ -1,7 +1,8 @@
 """
 Defines the command line functionality of Xenith
 """
-import os.path
+import os
+import sys
 import logging
 import pandas as pd
 
@@ -11,6 +12,11 @@ from xenith.config import Config
 def main():
     # Get command line arguments
     config = Config()
+
+    # If no args are present, show help and exit.
+    if len(sys.argv) == 1:
+        config.parser.print_help(sys.stderr)
+        quit()
 
     print(config._namespace)
     print(config.verbosity)
@@ -26,36 +32,19 @@ def main():
                         style="{", level=verbosity_dict[config.verbosity])
 
     if config.command == "predict":
+        dataset = xenith.load_psms(config.psm_files)
 
-        logging.info("Loading model from %s.", config.model_file)
-        if config.model == "custom":
-            model = xenith.load_model(config.model_file)
-        elif config.model == "custom_percolator":
-            model = xenith.from_percolator(config.model_file)
-        else:
-            raise RuntimeError("Not yet implemented.")
+        try:
+            model = xenith.from_percolator(config.model)
+        except UnicodeDecodeError:
+            model = xenith.load_model(config.model)
 
-        file_txt = ", ".join(config.psm_files)
-        logging.info("Assessing PSMs from %s.", file_txt)
-        prediction = model.predict(config.psm_files)
+        dataset = model.predict(dataset)
+        psms, xlinks = dataset.estimate_qvalues()
 
-        logging.info("Estimating q-values.")
-        results = prediction.estimate_qvalues("xenith_score")
-
-        logging.info("Writing results to '%s'.", config.output_dir)
-        out_files = [".psms.tsv", ".peptides.tsv", ".cross-links.tsv"]
-
-        for result, out_file in zip(results, out_files):
-            out_file = os.path.join(config.output_dir,
-                                    config.fileroot + out_file)
-            result.to_csv(out_file, sep="\t", index=False)
-
-
-
-    elif config.command == "fit":
-        logging.info("fitting")
-
-
+        out_base = os.path.join(config.output_dir, config.fileroot)
+        psms.to_csv(out_base + ".psms.txt", sep="\t", index=False)
+        xlinks.to_csv(out_base + ".xlinks.txt", sep="\t", index=False)
 
 
 if __name__ == "__main__":

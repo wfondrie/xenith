@@ -4,7 +4,6 @@ command-line.
 """
 import argparse
 import textwrap
-#import configargparse
 
 
 class XenithHelpFormatter(argparse.HelpFormatter):
@@ -28,8 +27,8 @@ class Config():
                 "Official code website: "
                 "https://github.com/wfondrie/xenith")
 
-        docs = ("For more detailed documentation, examples, and explanations, "
-                "see the official documentation website: "
+        docs = ("\nSee the official documentation website for more detailed "
+                "documentation, examples, and best practices: "
                 "https://xenith.readthedocs.com")
 
         # Setup main parser
@@ -40,7 +39,7 @@ class Config():
         # Setup parser for shared arguments
         common = argparse.ArgumentParser(add_help=False)
 
-        common.add_argument("--verbosity",
+        common.add_argument("-v", "--verbosity",
                             default=2,
                             type=int,
                             choices=[0, 1, 2, 3],
@@ -50,154 +49,98 @@ class Config():
                                   "verbosity: 0-errors, 1-warnings, 2-messages"
                                   ", 3-debug info."))
 
-        # Setup subparsers for each subcommand
+        # Add subparsers for each subcommand
         subparser = parser.add_subparsers(title="Command", dest="command")
 
-        # Evaluation
-        eval_help = ("Use a previously trained model to assess a new "
-                     "collection of peptide-spectrum matches (PSMs).")
+        # Predict
+        predict_help = ("Use a previously trained model to assess a new"
+                        " collection of peptide-spectrum matches (PSMs).")
 
-        eval_parser = subparser.add_parser("predict",
-                                           parents=[common],
-                                           description=eval_help,
-                                           epilog=docs,
-                                           help=eval_help)
+        predict = subparser.add_parser("predict",
+                                       parents=[common],
+                                       description=predict_help,
+                                       epilog=docs,
+                                       help=predict_help)
 
-        eval_parser.add_argument("psm_files",
-                                 type=str,
-                                 nargs="+",
-                                 help=("A collection of cross-linked PSMs in"
-                                       "the xenith tab-separated format."))
-
-        eval_parser.add_argument("--output_dir",
-                                 default=".",
-                                 type=str,
-                                 help=("The directory in which to write xenith"
-                                       " results. This is the working "
-                                       "directory by default."))
-
-        eval_parser.add_argument("--fileroot",
-                                 type=str,
-                                 default="xenith",
-                                 help=("The fileroot string will be added as a"
-                                       " prefix to all output file names. This"
-                                       " is the 'xenith' by default."))
-
-        mod_help = """Which model should be used? Choices include several
-        included pretrained models for output from Kojak, or custom models
-        created in xenith or from Percolator. Specifically, the choices are:
+        mod_help = """What model should me used? The easiest option is to
+        select one of the xenith pretrained models designed for output from
+        Kojak. These are:
         (1) 'kojak_mlp' - A multilayer perceptron model for output from
         Kojak 2.0.
         (2) 'kojak_linear' - A linear model for output from Kojak 2.0.
         (3) 'kojak_percolator' - A model created from Percolator results for
         output from Kojak 2.0.
-        (4) 'custom' - A custom xenith model, created using 'xenith train'
-        (5) 'custom_percolator' - A custom model created from the weights
-        learned by Percolator. For the latter two, the '--model-file' option
-        is required.
+        Alternatively, a custom xenith model file or the weights output from
+        Percolator can be used.
         """
-        eval_parser.add_argument("--model",
-                                 type=str,
-                                 choices=["kojak_mlp", "kojak_linear",
-                                          "kojak_percolator", "custom",
-                                          "custom_percolator"],
-                                 default="kojak_mlp",
-                                 help=mod_help)
+        predict.add_argument("-m", "--model",
+                             type=str,
+                             default="kojak_mlp",
+                             help=mod_help)
 
-        eval_parser.add_argument("--model-file",
-                                 type=str,
-                                 help=("The path to a custom model. If "
-                                       "'--model' is 'custom', this should "
-                                       "be a xenith model file. If '--model' "
-                                       "is 'custom_percolator' this should be "
-                                       "the weights file output by "
-                                       "Percolator"))
+        predict.add_argument("psm_files",
+                             type=str,
+                             nargs="+",
+                             help=("A collection of cross-linked PSMs in"
+                                   " the xenith tab-delimited format."))
 
+        predict.add_argument("-o", "--output_dir",
+                             default=".",
+                             type=str,
+                             help=("The directory in which to write xenith "
+                                   "results. This is the working directory by "
+                                   "default."))
 
-        # Train
-        fit_help = ("Train a new model to assess future collections of "
-                    "cross-linked peptide-spectrum matches (PSMs).")
-        fit_parser = subparser.add_parser("fit",
-                                          parents=[common],
-                                          description=fit_help,
-                                          epilog=docs,
-                                          help=fit_help)
+        predict.add_argument("-r", "--fileroot",
+                             type=str,
+                             default="xenith",
+                             help=("The fileroot string will be added as a"
+                                   " prefix to all output file names. This"
+                                   " is the 'xenith' by default."))
 
-        fit_parser.add_argument("psm_files",
-                                type=str,
-                                nargs="+",
-                                help=("One or more collections of PSMs in "
-                                      "the xenith tab-separated format"))
+        # Kojak conversion
+        kojak_help = ("Convert Kojak search results to the xenith tab-"
+                      "delimited format.")
 
-        fit_parser.add_argument("--fileroot",
-                                type=str,
-                                default="xenith_model",
-                                nargs=1,
-                                help=("The fileroot string will be added as "
-                                      "a prefix to all output file names. "
-                                      "This is 'xenith_model' by default."))
+        kojak = subparser.add_parser("kojak",
+                                     parents=[common],
+                                     description=kojak_help,
+                                     epilog=docs,
+                                     help=kojak_help)
 
-        fit_parser.add_argument("--hidden_dims",
-                                type=str,
-                                default="8,8,8",
-                                nargs=1,
-                                help=("A comma-separated list indicating "
-                                      "dimensions of hidden layers to use "
-                                      "in the model. This is '8,8,8' by "
-                                      "default, which defines three hidden "
-                                      "layers with 8 neurons each. If '', a "
-                                      "linear model is used."))
+        kojak.add_argument("kojak",
+                           type=str,
+                           help=("The path to the main kojak result file"
+                                 " (*.kojak.txt)."))
 
-        fit_parser.add_argument("--max_epochs",
-                                type=int,
-                                default=100,
-                                nargs=1,
-                                help=("The maximum number of epochs "
-                                      "used for model training."))
+        kojak.add_argument("perc-intra",
+                           type=str,
+                           help=("The path to the intraprotein Percolator "
+                                 "input file from Kojak (*.perc.intra.txt)."))
 
-        fit_parser.add_argument("--learning_rate",
-                                type=float,
-                                default=0.001,
-                                nargs=1,
-                                help=("The learning rate to be used for "
-                                        "optimization with Adam. The default "
-                                        "is 0.001"))
+        kojak.add_argument("perc-inter",
+                           type=str,
+                           help=("The path to the interprotein Percolator "
+                                 "input file from Kojak (*.perc.inter.txt)."))
 
-        fit_parser.add_argument("--batch_size",
-                                type=int,
-                                default=1028,
-                                nargs=1,
-                                help=("The batch size to use for "
-                                      "optimization with Adam. The default "
-                                      "is 1028."))
+        kojak.add_argument("-o", "--output-file",
+                           type=str,
+                           default="kojak.xenith.txt",
+                           help=("The output file name and path."))
 
-        fit_parser.add_argument("--weight_decay",
-                                type=float,
-                                default=0.01,
-                                nargs=1,
-                                help=("Adds L2 regularization to all model "
-                                      "parameters"))
+        kojak.add_argument("-c", "--max-charge",
+                           type=int,
+                           default=8,
+                           help="The maximum charge state to consider.")
 
-        fit_parser.add_argument("--early_stop",
-                                type=int,
-                                default=5,
-                                help=("Stop training if the validation set "
-                                      "loss does not decreases for n "
-                                      "consecutive epochs. 0 disables early "
-                                      "stopping."))
-
-        fit_parser.add_argument("--gpu",
-                                type=bool,
-                                default=False,
-                                help="Should a GPU be used, if available?")
-
-        fit_parser.add_argument("--seed",
-                                type=int,
-                                default=1,
-                                help="Set the seed for reproducibility.")
-
+        kojak.add_argument("-p", "--to-pin",
+                           type=bool,
+                           default=False,
+                           help=("Convert to a Percolator INput file instead "
+                                 "of the xenith tab-delimited format."))
 
         self._namespace = vars(parser.parse_args())
+        self.parser = parser
 
     def __getattr__(self, option):
         return self._namespace[option]
