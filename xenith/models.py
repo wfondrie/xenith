@@ -104,7 +104,7 @@ class XenithModel():
         torch.save(model_spec, file_name)
 
     def predict(self, xenith_dataset: dataset.XenithDataset,
-                name: str = "XenithDataset", gpu: bool = False) \
+                name: str = "XenithScore", gpu: bool = False) \
         -> dataset.XenithDataset:
         """
         Use a trained XenithModel to evaluate a new dataset.
@@ -326,6 +326,7 @@ def from_percolator(weights_file: str) -> XenithModel:
 
     # Dummy pd.Series to verify that the features are correct.
     features = weight_df.drop(columns="m0").columns.tolist()
+    features = [f.lower() for f in features]
     dummy = pd.Series([0]*weights.shape[1], index=features)
 
     return XenithModel(model=model, num_features=weights.shape[1],

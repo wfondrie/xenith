@@ -99,11 +99,11 @@ def test_from_percolator(perc_weights):
     loaded = xenith.from_percolator(path)
 
     # Correct answers for feat_mean and feat_stdev
-    features = ['Score', 'eVal', 'eValA', 'eValB', 'IonMatch', 'ConIonMatch',
-                'IonMatchA', 'ConIonMatchA', 'IonMatchB', 'ConIonMatchB',
-                'PPScoreDiff', 'Mass', 'PPM', 'LenSum', 'intraprotein',
-                'LenRat', 'Charge_1', 'Charge_2', 'Charge_3', 'Charge_4',
-                'Charge_5', 'Charge_6', 'Charge_7', 'Charge_8']
+    features = ['score', 'eval', 'evala', 'evalb', 'ionmatch', 'conionmatch',
+                'ionmatcha', 'conionmatcha', 'ionmatchb', 'conionmatchb',
+                'ppscorediff', 'mass', 'ppm', 'lensum', 'intraprotein',
+                'lenrat', 'charge_1', 'charge_2', 'charge_3', 'charge_4',
+                'charge_5', 'charge_6', 'charge_7', 'charge_8']
     correct_feat = pd.Series([0]*24, index=features)
 
     assert loaded.source == "percolator"
