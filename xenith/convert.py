@@ -2,6 +2,7 @@
 Converters for XL-MS search engine output formats.
 """
 from io import StringIO
+from itertools import chain
 import numpy as np
 import pandas as pd
 
@@ -42,16 +43,22 @@ def convert_kojak(kojak: str, perc_inter: str, perc_intra: str, out_file: str,
     """
     kojak_df, key_cols = _read_kojak(kojak)
     inter = _read_percolator(perc_inter)
-    #inter["intraprotein"] = 0
+    inter["intraprotein"] = 0
     inter.SpecId = inter.SpecId + "-inter"
 
     intra = _read_percolator(perc_intra)
-    #intra["intraprotein"] = 1
+    intra["intraprotein"] = 1
     intra.SpecId = intra.SpecId + "-intra"
 
     perc_df = pd.concat([inter, intra])
     merged = pd.merge(perc_df, kojak_df, how="inner", on=key_cols,
                       validate="one_to_one")
+
+    # In the case where there are only two unique proteins, set the
+    # intraprotein feature to 0.
+    num_proteins = _count_proteins(merged)
+    if num_proteins <= 2:
+        merged["intraprotein"] = 0
 
     # Drop unwanted columns
     xenith_target = ["NumTarget"]
@@ -108,6 +115,20 @@ def convert_kojak(kojak: str, perc_inter: str, perc_intra: str, out_file: str,
 
 
 # Utility Functions -----------------------------------------------------------
+def _count_proteins(psm_df):
+    """
+    Count the number of proteins in the dataset.
+
+    If the number of proteins is 2, intraprotein should be constant.
+    """
+    all_prot = psm_df.ProteinA + ";" + psm_df.ProteinB
+
+    prot_set = [p.split(";") for p in all_prot.tolist()]
+    prot_set = set(chain.from_iterable(prot_set))
+
+    return len(prot_set)
+
+
 def _write_pin(pin_df, pin_file):
     """
     Write a dataframe to pin format.
