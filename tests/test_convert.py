@@ -41,6 +41,10 @@ def test_convert_kojak(tmpdir, kojak_files):
 
     assert all(not x for x in intraprotein)
 
+    # also verify to_pin doesn't error:
+    xenith.convert.kojak(kojak_files[0], kojak_files[1], kojak_files[2],
+                         out_file=out_file, to_pin=True)
+
 
 def test_count_proteins():
     """Test that count proteins works as expected."""

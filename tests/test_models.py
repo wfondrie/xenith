@@ -163,6 +163,12 @@ def test_fit_rough(input_tsv):
     loss_df = linear_model.fit(dataset, silly_val, batch_size=1, early_stop=1)
     assert len(loss_df) < 100
 
+    # force NaN loss:
+    dataset.features.loc[5, "score"] = np.nan
+    with pytest.raises(RuntimeError):
+        linear_model.fit(dataset, silly_val, batch_size=1, max_epochs=10)
+
+
 @pytest.fixture
 def contrived_dataset(tmpdir):
     """Create a simple dataset to test model predictions"""

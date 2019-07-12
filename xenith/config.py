@@ -174,8 +174,6 @@ class Config():
     def __getattr__(self, option):
         return self._namespace[option]
 
-    def __getitem__(self, item):
-        return self.__getattr__(item)
 
 # Utility Functions -----------------------------------------------------------
 def _process_line(line, width, indent):

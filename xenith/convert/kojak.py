@@ -209,7 +209,6 @@ def _read_percolator(percolator_file):
 
         for line in pin:
             csv.write(line.replace("\t", ",", splits))
-            #csv.write(line.replace("\t", ";"))
 
         csv.seek(0)
         dat = pd.read_csv(csv)

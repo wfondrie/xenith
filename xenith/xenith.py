@@ -54,7 +54,3 @@ def main():
                              out_file=config.output_file,
                              max_charge=config.max_charge,
                              to_pin=config.to_pin)
-
-
-if __name__ == "__main__":
-    main()
