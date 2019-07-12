@@ -50,26 +50,32 @@ class Config():
                                   ", 3-debug info."))
 
         # Add subparsers for each subcommand
-        subparser = parser.add_subparsers(title="Command", dest="command")
+        commands = parser.add_subparsers(title="COMMANDS", dest="command",
+                                         help=("Available commands to run "
+                                               "xenith and convert search "
+                                               "engine results to xenith tab-"
+                                               "delimited format."))
 
         # Predict
         predict_help = ("Use a previously trained model to assess a new"
                         " collection of peptide-spectrum matches (PSMs).")
 
-        predict = subparser.add_parser("predict",
-                                       parents=[common],
-                                       description=predict_help,
-                                       epilog=docs,
-                                       help=predict_help)
+        predict = commands.add_parser("predict",
+                                      parents=[common],
+                                      description=predict_help,
+                                      epilog=docs,
+                                      help=predict_help)
 
-        mod_help = """What model should me used? The easiest option is to
+        mod_help = """What model should be used? The easiest option is to
         select one of the xenith pretrained models designed for output from
         Kojak. These are:
         (1) 'kojak_mlp' - A multilayer perceptron model for output from
-        Kojak 2.0.
-        (2) 'kojak_linear' - A linear model for output from Kojak 2.0.
-        (3) 'kojak_percolator' - A model created from Percolator results for
-        output from Kojak 2.0.
+        Kojak 2.0.0.
+        (2) 'kojak_linear' - A linear model for output from Kojak 2.0.0.
+        (3) 'kojak_percolator' - A model created from Percolator results from
+        Kojak 2.0.0.
+        (4) 'kojak_1.6.1_mlp' - A multilayer perceptron model for output from
+        Kojak 1.6.1.
         Alternatively, a custom xenith model file or the weights output from
         Percolator can be used.
         """
@@ -96,41 +102,42 @@ class Config():
                              default="xenith",
                              help=("The fileroot string will be added as a"
                                    " prefix to all output file names. This"
-                                   " is the 'xenith' by default."))
+                                   " is the 'xenith' by default. (string)"))
 
         predict.add_argument("-s", "--seed",
                              type=int,
                              default=1,
-                             help=("The random seed. Because tied PSMs are "
-                                   "broken randomly, this ensure "
-                                   "reproducibility"))
+                             help=("Integer indicating the random seed. "
+                                   "Because tied PSMs are broken randomly,"
+                                   "this ensures reproducibility."))
+
 
         # Kojak conversion
         kojak_help = ("Convert Kojak search results to the xenith tab-"
                       "delimited format.")
 
-        kojak = subparser.add_parser("kojak",
-                                     parents=[common],
-                                     description=kojak_help,
-                                     epilog=docs,
-                                     help=kojak_help)
+        kojak = commands.add_parser("kojak",
+                                    parents=[common],
+                                    description=kojak_help,
+                                    epilog=docs,
+                                    help=kojak_help)
 
         kojak.add_argument("kojak",
                            type=str,
                            help=("The path to the main kojak result file"
                                  " (*.kojak.txt)."))
 
-        kojak.add_argument("perc_intra",
-                           type=str,
-                           help=("The path to the intraprotein Percolator "
-                                 "input file from Kojak (*.perc.intra.txt)."))
-
         kojak.add_argument("perc_inter",
                            type=str,
                            help=("The path to the interprotein Percolator "
                                  "input file from Kojak (*.perc.inter.txt)."))
 
-        kojak.add_argument("-o", "--output-file",
+        kojak.add_argument("perc_intra",
+                           type=str,
+                           help=("The path to the intraprotein Percolator "
+                                 "input file from Kojak (*.perc.intra.txt)."))
+
+        kojak.add_argument("-o", "--output_file",
                            type=str,
                            default="kojak.xenith.txt",
                            help=("The output file name and path."))
@@ -141,16 +148,25 @@ class Config():
                            default="2.0-dev",
                            help=("The version of Kojak that was used."))
 
-        kojak.add_argument("-c", "--max-charge",
+        kojak.add_argument("-c", "--max_charge",
                            type=int,
                            default=8,
-                           help="The maximum charge state to consider.")
+                           help=("Integer indicating the maximum charge state "
+                                 "to consider. The default is 8."))
 
-        kojak.add_argument("-p", "--to-pin",
+        kojak.add_argument("-d", "--decoy_prefix",
+                           type=str,
+                           default="decoy_",
+                           help=("The prefix used to indicate decoy sequences."
+                                 " The default is 'decoy_'"))
+
+        kojak.add_argument("-p", "--to_pin",
                            type=bool,
                            default=False,
-                           help=("Convert to a Percolator INput file instead "
-                                 "of the xenith tab-delimited format."))
+                           help=("Boolean indicating whether to convert Kojak "
+                                 "results to a Percolator INput file instead "
+                                 "of the xenith tab-delimited format. The "
+                                 "default is False."))
 
         self._namespace = vars(parser.parse_args())
         self.parser = parser

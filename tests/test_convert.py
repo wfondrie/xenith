@@ -25,7 +25,13 @@ def test_convert_kojak(tmpdir, kojak_files):
     Test the conversion of Kojak results to xenith tab-delimited format.
     """
     out_file = os.path.join(tmpdir, "test.txt")
-    xenith.convert_kojak(kojak_files[0], kojak_files[1], kojak_files[2],
+    xenith.convert.kojak(kojak_files[0], kojak_files[1], kojak_files[2],
                          out_file=out_file)
 
+    # Because there are only 2 proteins in these results, 'intraprotein'
+    # should always be 0.
+    dataset = xenith.load_psms(out_file)
+    intraprotein = dataset.features.intraprotein.tolist()
+
+    assert all(not x for x in intraprotein)
 

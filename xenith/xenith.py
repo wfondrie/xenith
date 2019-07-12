@@ -46,7 +46,7 @@ def main():
         xlinks.to_csv(out_base + ".xlinks.txt", sep="\t", index=False)
 
     elif config.command == "kojak":
-        xenith.convert_kojak(kojak=config.kojak,
+        xenith.convert.kojak(kojak_txt=config.kojak,
                              perc_inter=config.perc_inter,
                              perc_intra=config.perc_intra,
                              version=config.version,

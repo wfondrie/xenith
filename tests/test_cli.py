@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 
 import xenith
+from test_convert import kojak_files
 
 @pytest.fixture
 def mods(tmpdir):
@@ -74,4 +75,24 @@ def test_predict(tmpdir, mods):
 
     pd.testing.assert_frame_equal(psms, mods["psms"])
     pd.testing.assert_frame_equal(xlinks, mods["xlinks"])
+
+
+def test_convert_kojak(tmpdir, kojak_files):
+    """
+    Test that the conversion of Kojak results is working.
+    """
+    # Python interface
+    out_file = os.path.join(tmpdir, "py.txt")
+    xenith.convert.kojak(kojak_files[0], kojak_files[1], kojak_files[2],
+                         out_file=out_file)
+    py_res = xenith.load_psms(out_file)
+
+    # CLI
+    out_file = os.path.join(tmpdir, "cli.txt")
+    subprocess.run(["xenith", "kojak", "-o", out_file] + list(kojak_files),
+                   check=True)
+    cli_res = xenith.load_psms(out_file)
+
+    pd.testing.assert_frame_equal(py_res.metadata, cli_res.metadata)
+    pd.testing.assert_frame_equal(py_res.features, cli_res.features)
 

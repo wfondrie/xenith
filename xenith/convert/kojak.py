@@ -1,14 +1,14 @@
 """
-Converters for XL-MS search engine output formats.
+Converter for the Kojak XL-MS search engine output formats.
 """
 from io import StringIO
 from itertools import chain
 import numpy as np
 import pandas as pd
 
-def convert_kojak(kojak: str, perc_inter: str, perc_intra: str, out_file: str,
-                  version: str = "2.0-dev", max_charge: int = 8,
-                  to_pin: bool = False) -> None:
+def kojak(kojak_txt: str, perc_inter: str, perc_intra: str, out_file: str,
+          version: str = "2.0-dev", max_charge: int = 8,
+          decoy_prefix: str = "decoy_", to_pin: bool = False) -> None:
     """
     Convert Kojak search results to xenith tab-delimited format.
 
@@ -18,14 +18,15 @@ def convert_kojak(kojak: str, perc_inter: str, perc_intra: str, out_file: str,
     Parameters
     ----------
     kojak : str
-        The path to the main kojak result file (".kojak.txt").
+        The path to the main kojak result file (*.kojak.txt).
 
     perc_inter : str
         The path to the interprotein Percolator input file from Kojak
-        (".perc.inter.txt")
+        (*.perc.inter.txt).
 
     perc_intra : str
-        The path to the intraproteoin Percolator input file from Kojak
+        The path to the intraprotein Percolator input file from Kojak
+        (*.perc.intra.txt)
 
     out_file : str
         The path to write the xenith tab-delimited output file.
@@ -37,11 +38,14 @@ def convert_kojak(kojak: str, perc_inter: str, perc_intra: str, out_file: str,
         The maximum charge to consider. This should match the training
         set.
 
+    decoy_prefix : str
+        The prefix used to indicate decoy sequences.
+
     to_pin : bool
         If true, convert results to a Percolator input file instead of
         a xenith tab-delimited file.
     """
-    kojak_df, key_cols = _read_kojak(kojak)
+    kojak_df, key_cols = _read_kojak(kojak_txt, decoy_prefix)
     inter = _read_percolator(perc_inter)
     inter["intraprotein"] = 0
     inter.SpecId = inter.SpecId + "-inter"
@@ -143,7 +147,7 @@ def _write_pin(pin_df, pin_file):
             pin_out.write("\t".join(row.tolist()) + "\n")
 
 
-def _read_kojak(kojak_file):
+def _read_kojak(kojak_file, decoy_prefix):
     """
     Read a kojak results file and generate key columns
 
@@ -151,6 +155,9 @@ def _read_kojak(kojak_file):
     ----------
     kojak_file : str
         The kojak result file to read.
+
+    decoy_prefix : str
+        Decoy prefix string.
 
     Returns
     -------
@@ -165,8 +172,8 @@ def _read_kojak(kojak_file):
     pep2 = dat["Peptide #2"].str.replace(r"\[.+?\]", "")
     link1 = dat["Linked AA #1"]
     link2 = dat["Linked AA #2"]
-    decoy1 = _all_decoy(dat["Protein #1"])
-    decoy2 = _all_decoy(dat["Protein #2"])
+    decoy1 = _all_decoy(dat["Protein #1"], decoy_prefix)
+    decoy2 = _all_decoy(dat["Protein #2"], decoy_prefix)
 
     dat["scannr"] = dat["Scan Number"]
     dat["Peptide"] = ("-." + pep1 + "(" + link1 + ")--"
@@ -211,12 +218,12 @@ def _read_percolator(percolator_file):
     return dat
 
 
-def _all_decoy(protein_col):
+def _all_decoy(protein_col, decoy_prefix):
     """Returns 1 if all proteins are decoys, 0 otherwise."""
     ret = []
     protein_col = protein_col.str.split(";")
     for row in protein_col:
-        decoy = all([p.startswith("decoy_") for p in row])
+        decoy = all([p.startswith(decoy_prefix) for p in row])
         ret.append(decoy)
 
     return pd.Series(ret).astype(int)

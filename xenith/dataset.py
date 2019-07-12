@@ -418,7 +418,7 @@ def _parse_psms(psm_files, meta_cols, more_meta_cols):
             feat_set = set(psms.columns)
 
         if (more_meta_cols is not None and
-            not set(more_meta_cols) <= set(psms.columns)):
+                not set(more_meta_cols) <= set(psms.columns)):
             raise RuntimeError(f"{psm_file} does not contain the specified "
                                "additional metadata columns.")
 
