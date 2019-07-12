@@ -64,20 +64,21 @@ def test_mlp_iscorrect():
     # but for now, just knowing that it doesn't error will work.
     mlp(torch.FloatTensor([[5] * 5]))
 
+
 def test_lm_iscorrect():
     """Test that you get actually linear model."""
-    lm = mods.Linear(input_dim=3)
+    linmod = mods.Linear(input_dim=3)
 
-    assert lm.linear.weight.size() == torch.Size([1, 3])
-    assert lm.linear.bias.size() == torch.Size([1])
+    assert linmod.linear.weight.size() == torch.Size([1, 3])
+    assert linmod.linear.bias.size() == torch.Size([1])
 
-    lm.linear.weight = torch.nn.Parameter(torch.FloatTensor([[1, 2, 3]]))
-    lm.linear.bias = torch.nn.Parameter(torch.FloatTensor([4]))
+    linmod.linear.weight = torch.nn.Parameter(torch.FloatTensor([[1, 2, 3]]))
+    linmod.linear.bias = torch.nn.Parameter(torch.FloatTensor([4]))
 
-    input = torch.FloatTensor([[5, 5, 5]])
-    output = torch.FloatTensor([[34]])
+    input_data = torch.FloatTensor([[5, 5, 5]])
+    output_data = torch.FloatTensor([[34]])
 
-    assert torch.allclose(lm(input), output)
+    assert torch.allclose(linmod(input_data), output_data)
 
 
 def test_sigmoid_loss():
@@ -107,7 +108,13 @@ def test_sigmoid_loss():
     assert torch.allclose(decoy_low, correct, atol=2e-7)
     assert torch.allclose(decoy_mid, midway)
 
+
 def test_hybrid_loss():
+    """
+    Test the hybrid loss function.
+
+    This is currently unused, but could be used in the future.
+    """
     hybrid_loss = mods.HybridLoss()
 
     high = torch.tensor([1000])

@@ -71,6 +71,7 @@ def toy_features():
 
     return (feat, feat.loc[:, ["A", "B", "C"]])
 
+
 def test_features(toy_features):
     """Verify basic feature processing and error checking works"""
     feat = xenith.dataset._process_features(toy_features[1],
@@ -104,6 +105,7 @@ def test_feature_norm_off(toy_features):
 
     assert np.allclose(feat[0].values, toy_features[1].values)
 
+
 def test_feature_custom_norm(toy_features):
     """
     Test using a custom mean and standard deviation in
@@ -120,6 +122,7 @@ def test_feature_custom_norm(toy_features):
     assert np.allclose(norm_feat, feat[0].values)
     assert np.allclose(fmean.values, feat[1].values)
     assert np.allclose(fstdev.values, feat[2].values)
+
 
 def test_feature_mismatch(toy_features):
     """
@@ -198,6 +201,7 @@ def test_torch_dataset_methods(psm_txt):
     assert torch.all(item[0] == psmdset[1][0])
     assert torch.all(item[1] == psmdset[1][1])
 
+
 def test_metrics(psm_txt):
     """Test that you can add and get metrics."""
     dset = xenith.load_psms(psm_txt[0:2])
@@ -217,6 +221,7 @@ def test_metrics(psm_txt):
     with pytest.raises(ValueError):
         dset.add_metric("blah", np.ones(shape=50))
 
+
 def test_qvalues(psm_txt):
     """
     Test that the XenithDataset.estimate_qvalues() method is working at
@@ -230,6 +235,7 @@ def test_qvalues(psm_txt):
 
     with pytest.raises(ValueError):
         dset.estimate_qvalues("blah")
+
 
 def test_format_output(psm_txt):
     """This one is for 100% coverage"""

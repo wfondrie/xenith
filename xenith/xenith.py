@@ -11,6 +11,7 @@ import xenith
 from xenith.config import Config
 
 def main():
+    """The command line entry point."""
     # Get command line arguments
     config = Config()
 

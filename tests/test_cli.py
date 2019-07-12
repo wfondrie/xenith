@@ -65,7 +65,7 @@ def test_predict(tmpdir, mods):
     out_files = [os.path.join(tmpdir, f) for f in out_files]
 
     base_cmd = ["xenith", "predict", mods["data_path"],
-                "-r", fileroot, "-o", tmpdir,  "-m"]
+                "-r", fileroot, "-o", tmpdir, "-m"]
 
     subprocess.run(base_cmd + [mods["perc"]], check=True)
     subprocess.run(base_cmd + [mods["xenith"]], check=True)
@@ -95,4 +95,3 @@ def test_convert_kojak(tmpdir, kojak_files):
 
     pd.testing.assert_frame_equal(py_res.metadata, cli_res.metadata)
     pd.testing.assert_frame_equal(py_res.features, cli_res.features)
-
