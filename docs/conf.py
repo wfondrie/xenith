@@ -65,6 +65,7 @@ htmlhelp_basename = "xenith_doc"
 #
 html_theme = 'alabaster'
 html_theme_options = {
+    "analytics_id": "UA-78640578-2",
     "logo_name": False,
     "logo": "xenith_logo.svg",
     "description": ("Enhanced cross-linked peptide detection using pretrained"
