@@ -1,10 +1,9 @@
 # Configuration for Read the Docs
-version: 2
+#version: 2
 
 python:
   version: 3.7
   system_packages: True
   install:
-    - requirements: requirements.txt
     - method: pip
       path: .
