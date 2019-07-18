@@ -1,5 +1,8 @@
 # Configuration for Read the Docs
+version: 2
+
 python:
   version: 3.7
   install:
-    - packages: ../setup.py 
+    - method: pip
+      path: .
