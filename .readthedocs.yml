@@ -1,0 +1,5 @@
+# Configuration for Read the Docs
+python:
+  version: 3.7
+  install:
+    - packages: ../setup.py 
