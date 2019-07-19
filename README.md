@@ -1,5 +1,5 @@
 
-<img src="xenith_logo.svg" width=200>  
+<img src="images/xenith_logo.svg" width=200>  
 
 ---  
 
