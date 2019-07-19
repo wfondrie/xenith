@@ -21,9 +21,9 @@ project = 'xenith'
 copyright = '2019, William E. Fondrie'
 author = 'William E. Fondrie'
 
-import xenith
-version = xenith.__version__
-release = xenith.__version__
+#import xenith
+#version = xenith.__version__
+#release = xenith.__version__
 
 # -- General configuration ---------------------------------------------------
 
