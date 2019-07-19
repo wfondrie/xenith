@@ -31,8 +31,8 @@ update:
 test:
 	pytest
 
-logo: xenith_logo.svg
-	cp xenith_logo.svg docs/_static/
+logo: images/xenith_logo.svg
+	cp images/xenith_logo.svg docs/_static/
 
 docs: logo
 	cd docs && make html
