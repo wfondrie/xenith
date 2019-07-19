@@ -2,7 +2,6 @@
 Setup the xenith package.
 """
 import setuptools
-import xenith
 
 with open("README.md", "r") as readme:
     LONG_DESC = readme.read()
@@ -16,7 +15,7 @@ CATAGORIES = ["Programming Language :: Python :: 3",
 
 setuptools.setup(
     name="xenith",
-    version=xenith.__version__,
+    version="0.0.1",
     author="William E. Fondrie",
     author_email="fondriew@gmail.com",
     description=DESC,
