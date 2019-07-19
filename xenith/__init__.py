@@ -1,10 +1,10 @@
 """
 See the README for detailed documentation and examples.
 """
-name = "xenith"
-
-__version__ = "0.0.1"
+from pkg_resources import get_distribution, DistributionNotFound
 
 from . import convert
 from .models import from_percolator, load_model, new_model
 from .dataset import load_psms
+
+__version__ = get_distribution(__name__).version

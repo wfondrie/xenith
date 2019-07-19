@@ -30,5 +30,7 @@ setuptools.setup(
         "numpy",
         "pandas",
         "torch"
-    ]
+    ],
+    use_scm_version=True,
+    setup_requires=["setuptools_scm"]
 )
