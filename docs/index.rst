@@ -70,14 +70,22 @@ pretrained model. **xenith** offers two operating modes:
 The User Guide
 --------------
 .. toctree::
+   :caption: Documentation
    :maxdepth: 1
 
    installation.rst
    input_formats.rst
-   rescoring.rst
-   training.rst
    python_api.rst
    cmd_api.rst
+
+.. toctree::
+   :caption: Vignettes
+   :maxdepth: 1
+
+   rescoring.rst
+   training.rst
+   
+
 
 .. rubric:: Footnotes
 

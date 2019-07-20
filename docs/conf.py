@@ -75,7 +75,9 @@ html_theme_options = {
     "codecov_button": True,
     "github_button": True,
     "travis_button": True,
-    "show_powered_by": False
+    "show_powered_by": False,
+    "caption_font_size": "14pt",
+    "caption_font_family": "Garamond"
 }
 
 html_show_sourcelink = False
