@@ -17,16 +17,16 @@ def kojak(kojak_txt: str, perc_inter: str, perc_intra: str, out_file: str,
 
     Parameters
     ----------
-    kojak : str
-        The path to the main kojak result file (*.kojak.txt).
+    kojak_txt : str
+        The path to the main kojak result file (.kojak.txt).
 
     perc_inter : str
         The path to the interprotein Percolator input file from Kojak
-        (*.perc.inter.txt).
+        (.perc.inter.txt).
 
     perc_intra : str
         The path to the intraprotein Percolator input file from Kojak
-        (*.perc.intra.txt)
+        (.perc.intra.txt)
 
     out_file : str
         The path to write the xenith tab-delimited output file.

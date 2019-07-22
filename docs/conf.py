@@ -80,10 +80,6 @@ html_theme_options = {
     "caption_font_family": "Garamond"
 }
 
-html_additional_pages = {
-    "View on GitHub": "https://github.com/wfondrie/xenith"
-}
-
 html_show_sourcelink = False
 
 # Add any paths that contain custom static files (such as style sheets) here,
