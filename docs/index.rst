@@ -43,29 +43,31 @@ pretrained model. **xenith** offers two operating modes:
 + **From the command line** - Input a dataset, chose a model, then output the
   new scores and q-values for the PSMs and cross-links.
 
-.. code-block:: bash
-   :linenos:
+.. code-block:: console
+   :caption: Command Line
 
-   # Would write 'xenith.psms.txt' and 'xenith.xlinks.txt'
-   # in the working directory.
-   xenith predict dataset.txt
+   $ xenith predict dataset.txt
 
 + **From Python** - All the functionality of the command line, with additional
   flexibility. Training new models can only be done using **xenith** as a Python
   package.
 
 .. code-block:: python
-   :linenos:
+   :caption: Python
 
    import xenith
    import pandas as pd
    
-   dataset = xenith.load_psms("dataset.txt")
-   model = xenith.load_model("kojak_mlp")
-   dataset = model.predict(dataset)
+   dataset = xenith.load_psms(psm_files="dataset.txt")
+   model = xenith.load_model(model="kojak_mlp")
+
+   # Calculate new scores and add them to the dataset.
+   new_scores = model.predict(xenith_dataset=dataset)
+   dataset.add_metric(values=new_scores, name="score")
 
    # 'psms' and 'xlinks' are pandas.DataFrames.
-   psms, xlinks = dataset.estimate_qvalues()
+   psms, xlinks = dataset.estimate_qvalues(metric="score")
+
 
 The User Guide
 --------------
