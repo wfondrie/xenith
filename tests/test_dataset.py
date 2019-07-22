@@ -209,17 +209,17 @@ def test_metrics(psm_txt):
     with pytest.raises(RuntimeError):
         dset.get_metrics()
 
-    dset.add_metric("xcorr", dset.features.score)
+    dset.add_metric(dset.features.score, "xcorr")
     metrics = dset.get_metrics()
 
     assert len(metrics) == len(dset.metadata)
     assert np.array_equal(metrics.xcorr.values, dset.features.score.values)
 
     with pytest.raises(ValueError):
-        dset.add_metric("blah", np.ones(shape=(10, 2)))
+        dset.add_metric(np.ones(shape=(10, 2)), "blah")
 
     with pytest.raises(ValueError):
-        dset.add_metric("blah", np.ones(shape=50))
+        dset.add_metric(np.ones(shape=50), "blah")
 
 
 def test_qvalues(psm_txt):
@@ -228,10 +228,10 @@ def test_qvalues(psm_txt):
     both the PSM and cross-link level.
     """
     dset = xenith.load_psms(psm_txt[0:2])
-    dset.add_metric("XenithScore", np.random.normal(size=len(dset)))
+    dset.add_metric(np.random.normal(size=len(dset)), "pred")
 
-    qvals = dset.estimate_qvalues()
-    dset.estimate_qvalues(desc=False)
+    qvals = dset.estimate_qvalues("pred")
+    dset.estimate_qvalues("pred", desc=False)
 
     with pytest.raises(ValueError):
         dset.estimate_qvalues("blah")

@@ -24,8 +24,8 @@ def mods(tmpdir):
     np.random.seed(1)
     data_path = os.path.join("tests", "data", "test.tsv")
     dataset = xenith.load_psms(data_path)
-    dataset = model.predict(dataset)
-    qvals = dataset.estimate_qvalues()
+    dataset.add_metric(model.predict(dataset), "score")
+    qvals = dataset.estimate_qvalues("score")
 
     files = [os.path.join(tmpdir, "psms.txt"),
              os.path.join(tmpdir, "xlinks.txt")]

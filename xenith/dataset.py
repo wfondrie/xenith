@@ -27,10 +27,13 @@ class _PsmDataset(torch.utils.data.Dataset):
         information from.
 
     feat_mean : pd.Series
+        pandas Series containing the mean used for the normalization of
+        each feature. If ``None``, it is calculated from this dataset.
+
     feat_stdev : pd.Series
-        pandas Series containing the mean and standard deviation used for the
-        normalization of each feature. If `None`, the these are calculated
-        from the XenithDataset.features.
+        pandas Series containing standard deviation used for the
+        normalization of each feature. If ``None``, it is calculated
+        from this dataset
 
     normalize : bool
         Should features be normalized?
@@ -98,11 +101,9 @@ class XenithDataset():
         A dataframe containing the raw values of features for model
         training and prediction.
 
-    predictions : pandas.DataFrame
-        A dataframe containing new scores for each PSM. New predictions
-        (such as from using different models) will be added as a new
-        column. If no predictions have been made, this is an empty
-        dataframe.
+    metrics : pandas.DataFrame
+        A dataframe containing metrics by which to evaluate PSM quality.
+        These are added using the ``add_metric()`` method.
     """
     def __init__(self, psm_files: Tuple[str], additional_metadata=None):
         """Initialize a PsmDataset"""
@@ -131,24 +132,24 @@ class XenithDataset():
         """Return the number of features in the dataset."""
         return self.features.shape[1]
 
-    def add_metric(self, name: str, values: np.ndarray) -> None:
+    def add_metric(self, values: np.ndarray, name: str) -> None:
         """
         Add a new metric to the XenithDataset.
 
         Metrics are measures of PSM confidence and can be used for
-        estimating q-values. Predictions made with a XenithModel
-        are automatically added as a metric.
+        estimating q-values.
 
         Parameters
         ----------
-        name : str
-            Name of the new metric. If the name matches an existing
-            metric, it will be overwritten.
-
         values : np.ndarray
             A 1D numpy array specifying the values of the metric. This
             must be the same length as the number of PSMs in the dataset
             (which can be found with `len()`)
+
+        name : str
+            Name of the new metric. If the name matches an existing
+            metric, it will be overwritten.
+
         """
         if len(values.shape) > 1:
             raise ValueError("'values' must be 1-dimensional.")
@@ -175,8 +176,8 @@ class XenithDataset():
 
         return _format_output(out_df, self.metrics.columns.tolist())
 
-    def estimate_qvalues(self, metric: str = "XenithScore",
-                         desc: bool = True) -> Tuple[pd.DataFrame]:
+    def estimate_qvalues(self, metric: str, desc: bool = True) \
+        -> Tuple[pd.DataFrame]:
         """
         Estimate q-values at the PSM, and cross-link levels.
 

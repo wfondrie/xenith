@@ -39,8 +39,9 @@ def main():
         except UnicodeDecodeError:
             model = xenith.load_model(config.model)
 
-        dataset = model.predict(dataset)
-        psms, xlinks = dataset.estimate_qvalues()
+        pred = model.predict(dataset)
+        dataset.add_metric(pred, name="score")
+        psms, xlinks = dataset.estimate_qvalues("score")
 
         out_base = os.path.join(config.output_dir, config.fileroot)
         psms.to_csv(out_base + ".psms.txt", sep="\t", index=False)

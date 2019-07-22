@@ -58,8 +58,12 @@ class XenithModel():
         Is the model already trained?
 
     feat_mean : pandas.Series
+        Series containing the mean of features from the training set.
+        Future datasets that this model is applied too must have
+        features that match these.
+
     feat_stdev: pandas.Series
-        Series containing the mean and standard deviations of features
+        Series containing standard deviations of features
         from the training set. Future datasets that this model is
         applied too must have features that match these.
 
@@ -104,8 +108,7 @@ class XenithModel():
         torch.save(model_spec, file_name)
 
     def predict(self, xenith_dataset: dataset.XenithDataset,
-                name: str = "XenithScore", gpu: bool = False) \
-        -> dataset.XenithDataset:
+                gpu: bool = False) -> np.ndarray:
         """
         Use a trained XenithModel to evaluate a new dataset.
 
@@ -115,20 +118,13 @@ class XenithModel():
             A XenithDataset object containing the PSMs to evaluate.
             These should not have been used for model training!
 
-        name : str
-            The name of the output column. This is added to the
-            'predictions' attribute of the output XenithDataset. If this
-            column already exists, the previous column will be
-            overwritten.
-
         gpu : bool
             Should the gpu be used, if available?
 
         Returns
         -------
-        xenith.dataset.XenithDataset
-             A XenithDataset with the new scores written to the
-            'predictions' attribute.
+        np.ndarray
+             A 1D numpy array with the new scores.
         """
         if not self.pretrained:
             logging.warning("This model appears to be untrained!")
@@ -148,10 +144,8 @@ class XenithModel():
 
         pred = self.model(psms.features.to(device))
         pred = pred.detach().cpu().numpy().flatten()
-        out_dataset = copy.deepcopy(xenith_dataset)
-        out_dataset.add_metric(name, pred)
 
-        return out_dataset
+        return pred
 
     def fit(self, training_set: dataset.XenithDataset,
             validation_set: dataset.XenithDataset,

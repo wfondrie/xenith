@@ -135,6 +135,7 @@ def test_count_parameters():
     assert linear_params == 4 # 4 feat + 1 bias
     assert mlp_params == 11 # (4x2 weights + 2 bias) + 1 bias
 
+
 def test_fit_rough(input_tsv):
     """
     Test that the XenithModel.fit() method does not error.
@@ -208,7 +209,8 @@ def test_predict(contrived_dataset):
     linear_model.model.linear.bias = torch.nn.Parameter(torch.FloatTensor([3]))
 
     # With norm.
-    dataset = linear_model.predict(dataset, name="pred")
+    pred = linear_model.predict(dataset)
+    dataset.add_metric(pred, name="pred")
     metrics = dataset.get_metrics()
 
     feat_a = ((dataset.features.feat_a.values - feat_mean[0]) /
@@ -222,10 +224,8 @@ def test_predict(contrived_dataset):
 
     # Without norm.
     linear_model.source = "percolator"
-    dataset = linear_model.predict(dataset, name="pred")
+    pred = linear_model.predict(dataset)
+    dataset.add_metric(pred, name="pred")
     metrics = dataset.get_metrics()
     expected = np.array([9, 12, 15])
     assert np.allclose(metrics.pred.values, expected)
-
-
-

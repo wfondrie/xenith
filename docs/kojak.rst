@@ -20,6 +20,9 @@ either from the command line or within a Python session:
 1. Convert Kojak PSM results to **xenith** tab-delimited format.
 2. Apply an included pretrained model to re-score the PSMs.
 
+The sections that follow will go through these steps and present the command
+line and Python code to complete them.
+
 
 1. Convert Kojak results
 ------------------------
@@ -45,10 +48,10 @@ by **xenith** models. Specifically:
 A new **xenith** tab-delimited file containing the collection PSMs is created.
 In this case, it is ``example.xenith.txt``. 
 
-.. code-block:: bash
+.. code-block:: console
    :caption: Command Line
 
-   xenith kojak --output_file example.xenith.txt example.kojak.txt example.perc.inter.txt example.perc.intra.txt
+   $ xenith kojak --output_file example.xenith.txt example.kojak.txt example.perc.inter.txt example.perc.intra.txt
 
 .. code-block:: python
    :caption: Python
@@ -62,10 +65,23 @@ In this case, it is ``example.xenith.txt``.
 
 2. Re-Score PSMs
 -----------------
-.. code-block:: bash
+
+We can now use a pretrained model to re-score the PSMs from Kojak. For Kojak
+2.0, there are three models to choose from:
+
+* A multi-layer perceptron (MLP), trained in **xenith** (``kojak_mlp``, *recommended*).
+* A linear model, trained in **xenith** (``kojak_linear``).
+* A linear SVM model from Percolator (``kojak_percolator``).
+
+For Kojak 1.6.1, only an MLP model is available (``kojak_1.6.1_mlp``).
+
+In the examples below, we use the Kojak 2.0 MLP model to re-score the example
+dataset.
+
+.. code-block:: console
    :caption: Command Line
 
-   xenith predict dataset.txt
+   $ xenith predict dataset.txt
 
 .. code-block:: python
    :caption: Python
@@ -85,9 +101,20 @@ In this case, it is ``example.xenith.txt``.
    psms, xlinks = dataset.estimate_qvalues()
 
    # Save PSM and cross-link results
-   psms.to_csv("example.psms.txt", sep="\t", index=False)
-   xlinks.to_csv("example.xlinks.txt", sep="\t", index=False)
+   psms.to_csv("xenith.psms.txt", sep="\t", index=False)
+   xlinks.to_csv("xenith.xlinks.txt", sep="\t", index=False)
 
+The command line and Python examples above should both result in two files
+saved to the working directory: ``xenith.psms.txt`` and ``xenith.xlinks.txt``.
+These will contain the scores, q-values and peptide information at the PSM and cross-link
+level, respectively. For more information about what a q-value is and how to use
+it, we recommend this article [`link <https://noble.gs.washington.edu/papers/kall2008posterior.pdf>`_].
 
 .. _Kojak: http://kojak-ms.org 
 .. _Percolator: http://percolator.ms
+
+.. tip::
+   If you're using **xenith** from the command line, you can look up help for
+   any command using the ``-h`` argument. For example, ``xenith predict -h``
+   will reveal all of the arguments you can optionally specify when re-scoring a
+   new dataset.
