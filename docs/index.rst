@@ -82,7 +82,7 @@ The User Guide
    :caption: Vignettes
    :maxdepth: 1
 
-   rescoring.rst
+   kojak.rst
    training.rst
    
 
