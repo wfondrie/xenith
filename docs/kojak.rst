@@ -2,13 +2,13 @@ Re-Score Kojak Results
 ===============================
 
 **xenith** includes several pretrained models that can be used to re-score the
-intraprotein and interprotein cross-linked PSMs from a Kojak_ database search.
-If you want to follow along with this tutorial, you'll need to first perform a
-database search with Kojak_, specifying that you also want output for
-Percolator_. If successful, you should have files ending in ``.kojak.txt``,
-``.perc.intra.txt``, and ``.perc.inter.txt``, which you'll need for **xenith**.
-In this tutorial, we'll be using ``example.kojak.txt``, etc. as a generic
-example.
+intraprotein and interprotein cross-linked PSMs from a Kojak_ database search
+(versions 2.0 or 1.6.1). If you want to follow along with this tutorial, you'll
+need to first perform a database search with Kojak_, specifying that you also
+want output for Percolator_. If successful, you should have files ending in
+``.kojak.txt``, ``.perc.intra.txt``, and ``.perc.inter.txt``, which you'll need
+for **xenith**. In this tutorial, we'll be using ``example.kojak.txt``, etc. as
+a generic example.
 
 .. note::
    **xenith** can only be used if the search was performed against a
@@ -20,14 +20,16 @@ either from the command line or within a Python session:
 1. Convert Kojak PSM results to **xenith** tab-delimited format.
 2. Apply an included pretrained model to re-score the PSMs.
 
+
 1. Convert Kojak results
 ------------------------
-The Kojak search results must first be converted to the **xenith** tab-delimited
-format. In a nutshell, this conversion combines the interprotein and
-intraprotein PSMs into a single file, adding an "intraprotein" feature to the
-dataset. Additionally, several of the features in the Kojak_ output for
-Percolator_ are modified to be better utilized by **xenith** models.
-Specifically:
+
+The Kojak search results must
+first be converted to the **xenith** tab-delimited format. In a nutshell, this
+conversion combines the interprotein and intraprotein PSMs into a single file,
+adding an "intraprotein" feature to the dataset. Additionally, several of the
+features in the Kojak_ output for Percolator_ are modified to be better utilized
+by **xenith** models. Specifically:
 
 * If E-values are present, they are converted to the -log10(E-Value).
 * Charge state is one-hot encoded.
