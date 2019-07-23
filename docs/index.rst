@@ -73,20 +73,13 @@ The User Guide
 --------------
 .. toctree::
    :caption: Documentation
-   :maxdepth: 1
+   :maxdepth: 2
 
    installation.rst
    input_formats.rst
+   vignettes.rst
    python_api.rst
-   cmd_api.rst
-
-.. toctree::
-   :caption: Vignettes
-   :maxdepth: 1
-
-   kojak.rst
-   training.rst
-   
+   cmd_api.rst   
 
 
 .. rubric:: Footnotes
