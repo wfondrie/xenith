@@ -1,0 +1,4 @@
+/* Remove borders from option lists */
+table.option-list, th.option-list, td.option-list {
+    border: 0
+}
