@@ -3,6 +3,5 @@ version: 2
 python:
   version: 3.7
   install:
-    - method: pip
-      path: sphinx-argparse
+    - requirements: requirements_rtd.txt
       
