@@ -26,7 +26,7 @@ dataset [#]_, then use the pretrained model to re-score new datasets of interest
 [#]_
 At its most basic, **xenith** provides pretrained models to re-score results
 from the Kojak_ search engine. However, **xenith** is also flexible; given an
-independent training dataset, weights learned by Percolator can be used to
+independent training dataset, weights learned by Percolator_ can be used to
 create a model in **xenith**, or one can be fit within **xenith** itself.
 Finally, **xenith** provides the ability to estimate PSM and cross-link level
 FDR using the method proposed by Walzthoeni *et al*. [#]_ 
@@ -72,7 +72,6 @@ pretrained model. **xenith** offers two operating modes:
 The User Guide
 --------------
 .. toctree::
-   :caption: Documentation
    :maxdepth: 2
 
    installation.rst

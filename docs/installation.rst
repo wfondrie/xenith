@@ -49,7 +49,7 @@ Installing with pip will automatically install any of the missing Python package
 dependencies.
 
 .. note::
-   Automatically install PyTorch_ will install the default version. This may not
+   Automatically installing PyTorch_ will install the default version. This may not
    match your system configuration, particulary if you want to use a GPU. See
    the `PyTorch installation page <https://pytorch.org/get-started/locally/>`_
    for specific installation details. 
