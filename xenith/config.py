@@ -48,8 +48,7 @@ def _parser():
             "https://xenith.readthedocs.io")
 
     # Setup main parser
-    parser = argparse.ArgumentParser(description=desc + "\n \n",
-                                     epilog=docs,
+    parser = argparse.ArgumentParser(epilog=docs,
                                      formatter_class=XenithHelpFormatter)
 
     # Setup parser for shared arguments
@@ -85,7 +84,7 @@ def _parser():
                 " from Kojak 2.0.0.\n "
                 "(2) 'kojak_linear' - A linear model for output from Kojak "
                 "2.0.0.\n "
-                "(3) 'kojak_percolator' - A model created from Percolator "
+                "(3) 'kojak_percolator' - A model created by Percolator "
                 "results from Kojak 2.0.0.\n "
                 "(4) 'kojak_1.6.1_mlp' - A multilayer perceptron model for "
                 "output from Kojak 1.6.1.\n "
@@ -120,7 +119,7 @@ def _parser():
                          type=int,
                          default=1,
                          help=("Integer indicating the random seed. "
-                               "Because tied PSMs are broken randomly,"
+                               "Because tied PSMs are broken randomly, "
                                "this ensures reproducibility."))
 
 

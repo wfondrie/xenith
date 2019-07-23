@@ -66,16 +66,16 @@ In this case, it is ``example.xenith.txt``.
 2. Re-Score PSMs
 -----------------
 
-We can now use a pretrained model to re-score the PSMs from Kojak. For Kojak
+We can now use a pretrained model to re-score the PSMs from Kojak_. For Kojak_
 2.0, there are three models to choose from:
 
 * A multi-layer perceptron (MLP), trained in **xenith** (``kojak_mlp``, *recommended*).
 * A linear model, trained in **xenith** (``kojak_linear``).
-* A linear SVM model from Percolator (``kojak_percolator``).
+* A linear SVM model from Percolator_ (``kojak_percolator``).
 
-For Kojak 1.6.1, only an MLP model is available (``kojak_1.6.1_mlp``).
+For Kojak_ 1.6.1, only an MLP model is available (``kojak_1.6.1_mlp``).
 
-In the examples below, we use the Kojak 2.0 MLP model to re-score the example
+In the examples below, we use the Kojak_ 2.0 MLP model to re-score the example
 dataset.
 
 .. code-block:: console

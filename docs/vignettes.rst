@@ -6,6 +6,7 @@ Vignettes are tutorials that demonstrate common ways to use **xenith**.
 .. toctree::
    :maxdepth: 1
 
-   kojak.rst
+   kojak.rst   
    training.rst
+   percolator.rst
 
