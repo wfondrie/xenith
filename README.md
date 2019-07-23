@@ -27,8 +27,8 @@ These include the often limited number of true cross-linked peptide-spectrum
 matches (PSMs) and nuances for valid false discovery rate (FDR) estimation.  
 
 In light of these challenges, we created xenith. The design of xenith follows a
-traditional machine learning paradigm: Fit a model on a training dataset 1, then
-use the pretrained model to re-score new datasets of interest. 2 At its most
+traditional machine learning paradigm: Fit a model on a training dataset, then
+use the pretrained model to re-score new datasets of interest. At its most
 basic, xenith provides pretrained models to re-score results from the Kojak
 search engine. However, xenith is also flexible; given an independent training
 dataset, weights learned by Percolator can be used to create a model in xenith,
