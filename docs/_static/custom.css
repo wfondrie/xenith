@@ -1,5 +1,9 @@
 /* Remove borders from option lists */
-table.option-list, th.option-group, td.option-group {
-    border: 0
+table.option-list, table.docutils td {
+    border: 0;
     box-shadow: none
+}
+
+table.docutils.option-list td {
+    border: 0
 }
