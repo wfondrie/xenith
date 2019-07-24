@@ -1,7 +1,6 @@
 """
 Converter for the Kojak XL-MS search engine output formats.
 """
-from io import StringIO
 from itertools import chain
 import numpy as np
 import pandas as pd
@@ -202,18 +201,15 @@ def _read_kojak(kojak_file, decoy_prefix):
 
 def _read_percolator(percolator_file):
     """Parse a PIN formatted file. Return a dataframe"""
-    with open(percolator_file, "r") as pin, StringIO() as csv:
+    with open(percolator_file, "r") as pin:
         header = pin.readline()
         splits = header.count("\t")
-        csv.write(header.replace("\t", ","))
+        header = header.replace("\n", "")
+        header = header.split("\t")
+        rows = [line.replace("\n", "").split("\t", splits) for line in pin]
 
-        for line in pin:
-            csv.write(line.replace("\t", ",", splits))
-
-        csv.seek(0)
-        dat = pd.read_csv(csv)
-
-    return dat
+    data = pd.DataFrame(columns=header, data=rows)
+    return data.apply(pd.to_numeric, errors="ignore")
 
 
 def _all_decoy(protein_col, decoy_prefix):
