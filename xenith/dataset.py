@@ -249,6 +249,7 @@ class XenithDataset():
                                                  dat[metric].values,
                                                  desc=desc)
             dat.sort_values(metric, ascending=(not desc), inplace=True)
+            dat = dat.loc[dat.numtarget == 2]
             dat.reset_index(drop=True, inplace=True)
             out_list.append(_format_output(dat, [metric, "q-values"]))
 
