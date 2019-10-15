@@ -151,7 +151,7 @@ class XenithModel():
             validation_set: dataset.XenithDataset,
             max_epochs: int = 100, batch_size: int = 128,
             learn_rate: float = 0.001, weight_decay: float = 0.001,
-            early_stop: int = 5, gpu: bool = False) \
+            early_stop: int = 5, gpu: bool = False, _hybrid_loss=False) \
             -> pd.DataFrame:
         """
         Fit a XenithModel on a collection of cross-linked PSMs.
@@ -211,7 +211,10 @@ class XenithModel():
                                       feat_stdev=train_set.feat_stdev,
                                       normalize=True)
 
-        sig_loss = torchmods.SigmoidLoss()
+        if not _hybrid_loss:
+            loss_fun = torchmods.SigmoidLoss()
+        else:
+            loss_fun = torchmods.HybridLoss()
 
         # Send everything to 'device'
         self.model = self.model.to(device)
@@ -239,12 +242,12 @@ class XenithModel():
             with torch.no_grad():
                 self.model.eval()
                 train_pred = self.model(train_set.features)
-                train_loss = sig_loss(train_pred.flatten(), train_set.target)
+                train_loss = loss_fun(train_pred.flatten(), train_set.target)
                 train_loss = train_loss.item()
                 train_loss_tracker.append(train_loss)
 
                 val_pred = self.model(val_set.features)
-                val_loss = sig_loss(val_pred.flatten(), val_set.target)
+                val_loss = loss_fun(val_pred.flatten(), val_set.target)
                 val_loss = val_loss.item()
                 val_loss_tracker.append(val_loss)
                 self.model.train()
@@ -258,7 +261,7 @@ class XenithModel():
                 stop_counter += 1
 
             # The important bit -----------------------------------------------
-            loss = _train_batch(loader, self.model, optimizer, sig_loss)
+            loss = _train_batch(loader, self.model, optimizer, loss_fun)
 
             # Communication and error tracking --------------------------------
             _train_message(epoch, train_loss, val_loss)

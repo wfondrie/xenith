@@ -43,12 +43,14 @@ class MLP(nn.Module):
         for idx, in_layer in enumerate(in_layers):
             self.add_module("linear_{}".format(idx),
                             nn.Linear(in_layer, out_layers[idx]))
+            self.add_module("leakyReLU_{}".format(idx),
+                            nn.LeakyReLU())
 
     def forward(self, x):
         """Define the forward pass"""
         for idx, layer in enumerate(self._modules.values()):
             if idx < len(self._modules)-1:
-                x = F.relu_(layer(x))
+                x = layer(x)
             else:
                 return layer(x)
 
