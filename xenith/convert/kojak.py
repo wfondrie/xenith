@@ -46,22 +46,23 @@ def kojak(kojak_txt: str, perc_inter: str, perc_intra: str, out_file: str,
     """
     kojak_df, key_cols = _read_kojak(kojak_txt, decoy_prefix)
     inter = _read_percolator(perc_inter)
-    inter["intraprotein"] = 0
     inter.SpecId = inter.SpecId + "-inter"
 
     intra = _read_percolator(perc_intra)
-    intra["intraprotein"] = 1
+    #intra["intraprotein"] = 1
     intra.SpecId = intra.SpecId + "-intra"
 
     perc_df = pd.concat([inter, intra])
     merged = pd.merge(perc_df, kojak_df, how="inner", on=key_cols,
                       validate="one_to_one")
 
+    merged["intraprotein"] = _is_intraprotein(merged.ProteinA, merged.ProteinB,
+                                              decoy_prefix)
     # In the case where there are only two unique proteins, set the
     # intraprotein feature to 0.
     num_proteins = _count_proteins(merged)
-    if num_proteins <= 2:
-        merged["intraprotein"] = 0
+    #if num_proteins <= 2:
+    #    merged["intraprotein"] = 0
 
     # Drop unwanted columns
     xenith_target = ["NumTarget"]
@@ -82,8 +83,8 @@ def kojak(kojak_txt: str, perc_inter: str, perc_intra: str, out_file: str,
         drop_cols = perc_target + perc_tail
 
     # Drop columns specific to Kojak version
-    if version == "2.0-dev":
-        drop_cols = drop_cols + ["dScore", "NormRank"]
+    #if version == "2.0-dev":
+    #    drop_cols = drop_cols + ["dScore", "NormRank"]
 
     merged = merged.drop(columns=drop_cols)
 
@@ -173,6 +174,8 @@ def _read_kojak(kojak_file, decoy_prefix):
     link2 = dat["Linked AA #2"]
     decoy1 = _all_decoy(dat["Protein #1"], decoy_prefix)
     decoy2 = _all_decoy(dat["Protein #2"], decoy_prefix)
+    dat["Protein #1"] = _parse_proteins(dat["Protein #1"])
+    dat["Protein #2"] = _parse_proteins(dat["Protein #2"])
 
     dat["scannr"] = dat["Scan Number"]
     dat["Peptide"] = ("-." + pep1 + "(" + link1 + ")--"
@@ -211,6 +214,19 @@ def _read_percolator(percolator_file):
     data = pd.DataFrame(columns=header, data=rows)
     return data.apply(pd.to_numeric, errors="ignore")
 
+
+def _parse_proteins(protein_col):
+    """Remove description from protein id."""
+    protein_col = protein_col.str.split(";")
+    prot = [";".join([p.strip().split(" ", 1)[0] for p in r]) for r in protein_col]
+
+    return prot
+
+def _is_intraprotein(protein_col_a, protein_col_b, decoy_prefix):
+    """Determine if the cross-link is between the same protein or it's decoy"""
+    protein_col_a = protein_col_a.str.replace(decoy_prefix, "").str.split(";")
+    protein_col_b = protein_col_b.str.replace(decoy_prefix, "").str.split(";")
+    return [int(set(a) == set(b)) for a, b in zip(protein_col_a, protein_col_b)]
 
 def _all_decoy(protein_col, decoy_prefix):
     """Returns 1 if all proteins are decoys, 0 otherwise."""
